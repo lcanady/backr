@@ -47,6 +47,43 @@ Backr is a decentralized platform built on Ethereum that enables transparent and
 - Minimum and maximum contribution limits
 - Anti-sybil mechanisms
 
+### 🚀 Recent Achievements
+
+We've made significant progress in enhancing our platform's user experience:
+
+- **Project Discovery**: Implemented advanced project categorization with a sophisticated tagging system and multi-tag filtering
+- **Project Templates**: Developed a flexible template management system supporting diverse project archetypes
+- **Team Management**: Created a robust delegation and collaboration framework with secure role-based access controls
+- **Dispute Resolution**: Designed a comprehensive arbitration system for handling various collaboration conflicts
+
+## Upcoming User Experience Improvements
+
+### Project Discovery
+- **Categories and Tags**: We're introducing a comprehensive tagging system to help users easily discover and filter projects that match their interests.
+  - Categorize projects by domain (e.g., Tech, Art, Social Impact)
+  - Add custom tags for more granular project classification
+  - Implement advanced search and filtering capabilities
+
+### Project Management
+- **Project Templates**: Streamline project creation with pre-defined templates
+  - Standard templates for different project types
+  - Customizable template options
+  - One-click project initialization
+
+### Collaboration and Governance
+- **Team Management**
+  - Profile delegation for seamless team collaboration
+  - Granular permission controls
+  - Easy team member invitation and management
+
+### Dispute Resolution
+- **Fair and Transparent Conflict Management**
+  - Structured dispute resolution process
+  - Neutral arbitration mechanisms
+  - Clear guidelines and transparent tracking
+
+*Stay tuned for these exciting updates that will enhance your Backr experience!*
+
 ## Architecture
 
 ### Smart Contracts

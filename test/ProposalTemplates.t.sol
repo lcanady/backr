@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
 import "../src/ProposalTemplates.sol";
+import "openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 contract ProposalTemplatesTest is Test {
     ProposalTemplates public templates;
@@ -123,7 +124,12 @@ contract ProposalTemplatesTest is Test {
 
         vm.startPrank(alice);
         vm.expectRevert(
-            hex"e2517d3f000000000000000000000000000000000000000000000000000000000000000160a76a0b70eaebb9f781b27a8b41cd86da9ad7659595aff5cd32f3d522fa85ba"
+            abi.encodePacked(
+                "AccessControl: account ",
+                Strings.toHexString(alice),
+                " is missing role ",
+                Strings.toHexString(uint256(TEMPLATE_ADMIN_ROLE), 32)
+            )
         );
         templates.createTemplate(
             "Test Template", "A test template", mockContract, TEST_FUNCTION, paramNames, paramTypes

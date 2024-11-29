@@ -5,6 +5,7 @@ import "forge-std/Test.sol";
 import "../src/CommitteeGovernance.sol";
 import "../src/Governance.sol";
 import "../src/PlatformToken.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 
 contract CommitteeGovernanceTest is Test {
     CommitteeGovernance public committeeGov;
@@ -85,7 +86,12 @@ contract CommitteeGovernanceTest is Test {
     function testOnlyAdminCanCreateCommittee() public {
         vm.startPrank(alice);
         vm.expectRevert(
-            hex"e2517d3f000000000000000000000000000000000000000000000000000000000000000001733701979d7191ced62c79d6dde6252b95fb4941eed0547f745e7c3a1bab83b3"
+            abi.encodePacked(
+                "AccessControl: account ",
+                Strings.toHexString(alice),
+                " is missing role ",
+                Strings.toHexString(uint256(COMMITTEE_ADMIN_ROLE), 32)
+            )
         );
         committeeGov.createCommittee("Test Committee", "Test Description", 500);
         vm.stopPrank();

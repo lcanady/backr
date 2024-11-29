@@ -58,14 +58,14 @@ contract QuadraticFundingTest is Test {
     function test_StartRound() public {
         vm.deal(admin, 10 ether);
         vm.startPrank(admin);
-        
+
         QuadraticFunding.RoundConfig memory config = QuadraticFunding.RoundConfig({
             startTime: block.timestamp,
             endTime: block.timestamp + 14 days,
             minContribution: 0.1 ether,
             maxContribution: 5 ether
         });
-        
+
         qf.createRound{value: 10 ether}(config);
         assertTrue(qf.isRoundActive());
         vm.stopPrank();
@@ -74,14 +74,14 @@ contract QuadraticFundingTest is Test {
     function testFail_StartRoundWithActiveRound() public {
         vm.deal(admin, 20 ether);
         vm.startPrank(admin);
-        
+
         QuadraticFunding.RoundConfig memory config = QuadraticFunding.RoundConfig({
             startTime: block.timestamp,
             endTime: block.timestamp + 14 days,
             minContribution: 0.1 ether,
             maxContribution: 5 ether
         });
-        
+
         qf.createRound{value: 10 ether}(config);
         qf.createRound{value: 10 ether}(config); // Should fail
         vm.stopPrank();
@@ -91,14 +91,14 @@ contract QuadraticFundingTest is Test {
         // Start round
         vm.deal(admin, 10 ether);
         vm.startPrank(admin);
-        
+
         QuadraticFunding.RoundConfig memory config = QuadraticFunding.RoundConfig({
             startTime: block.timestamp,
             endTime: block.timestamp + 14 days,
             minContribution: 0.1 ether,
             maxContribution: 5 ether
         });
-        
+
         qf.createRound{value: 10 ether}(config);
 
         // Verify participants after round creation
@@ -120,14 +120,14 @@ contract QuadraticFundingTest is Test {
         // Start round
         vm.deal(admin, 10 ether);
         vm.startPrank(admin);
-        
+
         QuadraticFunding.RoundConfig memory config = QuadraticFunding.RoundConfig({
             startTime: block.timestamp,
             endTime: block.timestamp + 14 days,
             minContribution: 0.1 ether,
             maxContribution: 5 ether
         });
-        
+
         qf.createRound{value: 10 ether}(config);
 
         // Verify participants after round creation
@@ -174,14 +174,14 @@ contract QuadraticFundingTest is Test {
         // Start round
         vm.deal(admin, 10 ether);
         vm.startPrank(admin);
-        
+
         QuadraticFunding.RoundConfig memory config = QuadraticFunding.RoundConfig({
             startTime: block.timestamp,
             endTime: block.timestamp + 14 days,
             minContribution: 0.1 ether,
             maxContribution: 5 ether
         });
-        
+
         qf.createRound{value: 10 ether}(config);
 
         // Try to finalize before round ends

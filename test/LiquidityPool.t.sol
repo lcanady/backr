@@ -138,7 +138,7 @@ contract LiquidityPoolTest is Test {
         vm.deal(owner, 100 ether);
         token.approve(address(pool), type(uint256).max);
         pool.addLiquidity{value: 10 ether}(10_000 * 10 ** 18);
-        
+
         // Set high slippage tolerance for testing
         pool.setMaxSlippage(5000); // 50%
         vm.stopPrank();
@@ -407,7 +407,7 @@ contract LiquidityPoolTest is Test {
         vm.startPrank(owner);
         pool.setMaxSlippage(10); // 0.1%
         vm.stopPrank();
-        
+
         vm.startPrank(user1);
         // Attempt a swap that should exceed slippage
         uint256 swapAmount = 1 ether;
@@ -418,46 +418,46 @@ contract LiquidityPoolTest is Test {
         vm.stopPrank();
         vm.startPrank(owner);
         pool.setMaxSlippage(2000);
-        
+
         // Try the swap again - should work now
         vm.stopPrank();
         vm.startPrank(user1);
         pool.swapETHForTokens{value: swapAmount}(0);
-        
+
         vm.stopPrank();
     }
 
     function test_EmergencyWithdrawal() public {
         // Add initial liquidity
         (uint256 initialEthReserve, uint256 initialTokenReserve) = _addInitialLiquidity();
-        
+
         // Try emergency withdrawal without being owner
         vm.startPrank(user1);
         vm.expectRevert("Ownable: caller is not the owner");
         pool.emergencyWithdraw();
         vm.stopPrank();
-        
+
         // Try emergency withdrawal without pausing
         vm.startPrank(owner);
         vm.expectRevert("Pausable: not paused");
         pool.emergencyWithdraw();
-        
+
         // Pause and withdraw
         pool.pause();
-        
+
         uint256 ownerEthBefore = owner.balance;
         uint256 ownerTokensBefore = token.balanceOf(owner);
-        
+
         vm.expectEmit(true, true, true, true);
         emit EmergencyWithdrawal(owner, address(pool).balance, token.balanceOf(address(pool)));
         pool.emergencyWithdraw();
-        
+
         // Verify balances
         assertEq(address(pool).balance, 0, "Pool should have 0 ETH after emergency withdrawal");
         assertEq(token.balanceOf(address(pool)), 0, "Pool should have 0 tokens after emergency withdrawal");
         assertEq(owner.balance - ownerEthBefore, initialEthReserve, "Owner should receive all ETH");
         assertEq(token.balanceOf(owner) - ownerTokensBefore, initialTokenReserve, "Owner should receive all tokens");
-        
+
         vm.stopPrank();
     }
 
@@ -485,7 +485,7 @@ contract LiquidityPoolTest is Test {
 
         // Test adding zero amounts
         vm.expectRevert(LiquidityPool.InsufficientInputAmount.selector);
-        pool.addLiquidity{value: 0}(1000 * 10**18);
+        pool.addLiquidity{value: 0}(1000 * 10 ** 18);
 
         vm.expectRevert(LiquidityPool.InsufficientInputAmount.selector);
         pool.addLiquidity{value: 1 ether}(0);
@@ -495,11 +495,11 @@ contract LiquidityPoolTest is Test {
         pool.addLiquidity{value: 1}(1);
 
         // Add initial liquidity
-        pool.addLiquidity{value: 10 ether}(10_000 * 10**18);
+        pool.addLiquidity{value: 10 ether}(10_000 * 10 ** 18);
 
         // Test unbalanced ratios
         vm.expectRevert(LiquidityPool.UnbalancedLiquidityRatios.selector);
-        pool.addLiquidity{value: 1 ether}(2_000 * 10**18);
+        pool.addLiquidity{value: 1 ether}(2_000 * 10 ** 18);
 
         vm.stopPrank();
     }
@@ -508,22 +508,22 @@ contract LiquidityPoolTest is Test {
         // Setup initial liquidity
         vm.startPrank(owner);
         vm.deal(owner, 100 ether);
-        pool.addLiquidity{value: 10 ether}(10_000 * 10**18);
+        pool.addLiquidity{value: 10 ether}(10_000 * 10 ** 18);
         vm.stopPrank();
 
         // Calculate expected output with fees
         uint256 inputAmount = 1 ether;
         vm.deal(user1, inputAmount);
         vm.prank(user1);
-        
+
         uint256 expectedOutput = pool.getOutputAmount(
             inputAmount,
-            10 ether,  // ethReserve
-            10_000 * 10**18  // tokenReserve
+            10 ether, // ethReserve
+            10_000 * 10 ** 18 // tokenReserve
         );
 
         // Verify fee is correctly applied (0.3%)
-        uint256 withoutFee = (inputAmount * 10_000 * 10**18) / (10 ether + inputAmount);
+        uint256 withoutFee = (inputAmount * 10_000 * 10 ** 18) / (10 ether + inputAmount);
         uint256 fee = (withoutFee * 3) / 1000;
         uint256 expectedWithFee = withoutFee - fee;
         assertEq(expectedOutput, expectedWithFee, "Fee calculation incorrect");
@@ -549,39 +549,39 @@ contract LiquidityPoolTest is Test {
     function test_PoolStateChangeEvents() public {
         vm.startPrank(owner);
         vm.deal(owner, 100 ether);
-        
+
         // Set high slippage tolerance for testing
         pool.setMaxSlippage(5000); // 50%
-        
+
         uint256 ethAmount = 10 ether;
-        uint256 tokenAmount = 10_000 * 10**18;
-        
+        uint256 tokenAmount = 10_000 * 10 ** 18;
+
         // Test add liquidity event
         vm.expectEmit(true, true, true, true);
         emit PoolStateChanged(ethAmount, tokenAmount);
         pool.addLiquidity{value: ethAmount}(tokenAmount);
-        
+
         // Test swap event
         vm.stopPrank();
         vm.startPrank(user1);
         vm.deal(user1, 1 ether);
-        
+
         uint256 swapAmount = 1 ether;
-        
+
         // Get current state before swap
         uint256 currentEthReserve = pool.ethReserve();
         uint256 currentTokenReserve = pool.tokenReserve();
-        
+
         // Calculate expected output with fee
         uint256 expectedTokensOut = pool.getOutputAmount(swapAmount, currentEthReserve, currentTokenReserve);
-        
+
         // Do the swap and verify event
         pool.swapETHForTokens{value: swapAmount}(0);
-        
+
         // Verify final state matches event expectations
         assertEq(pool.ethReserve(), currentEthReserve + swapAmount, "ETH reserve mismatch");
         assertEq(pool.tokenReserve(), currentTokenReserve - expectedTokensOut, "Token reserve mismatch");
-        
+
         vm.stopPrank();
     }
 }

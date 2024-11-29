@@ -265,7 +265,7 @@ contract GovernanceTest is Test {
         governance.cancelProposal(1);
 
         // Verify proposal is cancelled (marked as executed with votes reset)
-        (uint256 forVotes, uint256 againstVotes,,,bool executed) = governance.getProposal(1);
+        (uint256 forVotes, uint256 againstVotes,,, bool executed) = governance.getProposal(1);
         assertEq(forVotes, 0);
         assertEq(againstVotes, 0);
         assertTrue(executed);
@@ -283,7 +283,7 @@ contract GovernanceTest is Test {
         governance.cancelProposal(1);
 
         // Verify proposal is cancelled
-        (uint256 forVotes, uint256 againstVotes,,,bool executed) = governance.getProposal(1);
+        (uint256 forVotes, uint256 againstVotes,,, bool executed) = governance.getProposal(1);
         assertEq(forVotes, 0);
         assertEq(againstVotes, 0);
         assertTrue(executed);

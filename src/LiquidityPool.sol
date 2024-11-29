@@ -144,13 +144,13 @@ contract LiquidityPool is ReentrancyGuard, Pausable, Ownable {
 
         // First calculate output without fee
         uint256 withoutFee = (_inputAmount * _outputReserve) / (_inputReserve + _inputAmount);
-        
+
         // Then apply the fee (0.3%)
         uint256 fee = (withoutFee * FEE_NUMERATOR) / FEE_DENOMINATOR;
         uint256 outputAmount = withoutFee - fee;
-        
+
         if (outputAmount == 0) revert InsufficientOutputAmount();
-        
+
         return outputAmount;
     }
 
@@ -174,9 +174,11 @@ contract LiquidityPool is ReentrancyGuard, Pausable, Ownable {
         // Check slippage
         uint256 expectedPrice = (oldTokenReserve * 1e18) / oldEthReserve;
         uint256 executionPrice = (tokensOut * 1e18) / msg.value;
-        uint256 priceImpact = ((expectedPrice > executionPrice) ? 
-            ((expectedPrice - executionPrice) * 10000) / expectedPrice :
-            ((executionPrice - expectedPrice) * 10000) / expectedPrice);
+        uint256 priceImpact = (
+            (expectedPrice > executionPrice)
+                ? ((expectedPrice - executionPrice) * 10000) / expectedPrice
+                : ((executionPrice - expectedPrice) * 10000) / expectedPrice
+        );
         if (priceImpact > maxSlippage) revert SlippageExceeded();
 
         // Verify k is maintained or increased using SafeMath
@@ -216,9 +218,11 @@ contract LiquidityPool is ReentrancyGuard, Pausable, Ownable {
         // Check slippage
         uint256 expectedPrice = (oldEthReserve * 1e18) / oldTokenReserve;
         uint256 executionPrice = (ethOut * 1e18) / _tokenAmount;
-        uint256 priceImpact = ((expectedPrice > executionPrice) ? 
-            ((expectedPrice - executionPrice) * 10000) / expectedPrice :
-            ((executionPrice - expectedPrice) * 10000) / expectedPrice);
+        uint256 priceImpact = (
+            (expectedPrice > executionPrice)
+                ? ((expectedPrice - executionPrice) * 10000) / expectedPrice
+                : ((executionPrice - expectedPrice) * 10000) / expectedPrice
+        );
         if (priceImpact > maxSlippage) revert SlippageExceeded();
 
         // Verify k is maintained or increased using SafeMath
@@ -328,17 +332,17 @@ contract LiquidityPool is ReentrancyGuard, Pausable, Ownable {
     function emergencyWithdraw() external onlyOwner whenPaused {
         uint256 ethBalance = address(this).balance;
         uint256 tokenBalance = token.balanceOf(address(this));
-        
+
         if (ethBalance > 0) {
             (bool success,) = msg.sender.call{value: ethBalance}("");
             if (!success) revert EmergencyWithdrawalFailed();
         }
-        
+
         if (tokenBalance > 0) {
             bool success = token.transfer(msg.sender, tokenBalance);
             if (!success) revert EmergencyWithdrawalFailed();
         }
-        
+
         emit EmergencyWithdrawal(msg.sender, ethBalance, tokenBalance);
     }
 

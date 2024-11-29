@@ -12,10 +12,10 @@ contract UserProfile is AccessControl, Pausable {
 
     bytes32 public constant REPUTATION_MANAGER_ROLE = keccak256("REPUTATION_MANAGER_ROLE");
     bytes32 public constant VERIFIER_ROLE = keccak256("VERIFIER_ROLE");
-    
+
     uint256 public constant PROFILE_UPDATE_COOLDOWN = 1 days;
     uint256 public constant RECOVERY_DELAY = 3 days;
-    
+
     // Structs
     struct Profile {
         string username;
@@ -72,11 +72,10 @@ contract UserProfile is AccessControl, Pausable {
     /// @param _username The desired username
     /// @param _bio User's biography/description
     /// @param _metadata Additional profile metadata (IPFS hash)
-    function createProfile(
-        string memory _username,
-        string memory _bio,
-        string memory _metadata
-    ) external whenNotPaused {
+    function createProfile(string memory _username, string memory _bio, string memory _metadata)
+        external
+        whenNotPaused
+    {
         if (profiles[msg.sender].isRegistered) revert ProfileAlreadyExists();
         if (bytes(_username).length == 0) revert InvalidUsername();
         if (usernameIndex[_username].exists) revert UsernameTaken();
@@ -94,15 +93,12 @@ contract UserProfile is AccessControl, Pausable {
             recoveryRequestTime: 0
         });
 
-        usernameIndex[_username] = ProfileIndex({
-            userAddress: msg.sender,
-            index: profileCounter.current(),
-            exists: true
-        });
+        usernameIndex[_username] =
+            ProfileIndex({userAddress: msg.sender, index: profileCounter.current(), exists: true});
 
         profileCounter.increment();
         totalUsers++;
-        
+
         emit ProfileCreated(msg.sender, _username);
         emit MetadataUpdated(msg.sender, _metadata);
     }
@@ -111,28 +107,24 @@ contract UserProfile is AccessControl, Pausable {
     /// @param _username New username
     /// @param _bio New biography/description
     /// @param _metadata New metadata
-    function updateProfile(
-        string memory _username,
-        string memory _bio,
-        string memory _metadata
-    ) external whenNotPaused {
+    function updateProfile(string memory _username, string memory _bio, string memory _metadata)
+        external
+        whenNotPaused
+    {
         Profile storage profile = profiles[msg.sender];
         if (!profile.isRegistered) revert ProfileDoesNotExist();
         if (bytes(_username).length == 0) revert InvalidUsername();
         if (block.timestamp < profile.lastUpdated + PROFILE_UPDATE_COOLDOWN) revert UpdateTooSoon();
-        
+
         // Remove old username index
         delete usernameIndex[profile.username];
-        
+
         // Check if new username is available
         if (usernameIndex[_username].exists) revert UsernameTaken();
-        
+
         // Update username index
-        usernameIndex[_username] = ProfileIndex({
-            userAddress: msg.sender,
-            index: profileCounter.current(),
-            exists: true
-        });
+        usernameIndex[_username] =
+            ProfileIndex({userAddress: msg.sender, index: profileCounter.current(), exists: true});
 
         profile.username = _username;
         profile.bio = _bio;
@@ -146,10 +138,10 @@ contract UserProfile is AccessControl, Pausable {
     /// @notice Updates a user's reputation score (only callable by authorized contracts)
     /// @param _user Address of the user
     /// @param _newScore New reputation score
-    function updateReputation(address _user, uint256 _newScore) 
-        external 
+    function updateReputation(address _user, uint256 _newScore)
+        external
         whenNotPaused
-        onlyRole(REPUTATION_MANAGER_ROLE) 
+        onlyRole(REPUTATION_MANAGER_ROLE)
     {
         if (!profiles[_user].isRegistered) revert ProfileDoesNotExist();
 
@@ -159,14 +151,10 @@ contract UserProfile is AccessControl, Pausable {
 
     /// @notice Verifies a user's profile
     /// @param _user Address of the user to verify
-    function verifyProfile(address _user) 
-        external 
-        whenNotPaused
-        onlyRole(VERIFIER_ROLE) 
-    {
+    function verifyProfile(address _user) external whenNotPaused onlyRole(VERIFIER_ROLE) {
         Profile storage profile = profiles[_user];
         if (!profile.isRegistered) revert ProfileDoesNotExist();
-        
+
         profile.isVerified = true;
         emit ProfileVerified(_user);
     }
@@ -176,7 +164,7 @@ contract UserProfile is AccessControl, Pausable {
     function setRecoveryAddress(address _recoveryAddress) external whenNotPaused {
         if (!profiles[msg.sender].isRegistered) revert ProfileDoesNotExist();
         if (_recoveryAddress == address(0)) revert InvalidRecoveryAddress();
-        
+
         profiles[msg.sender].recoveryAddress = _recoveryAddress;
         emit RecoveryAddressSet(msg.sender, _recoveryAddress);
     }
@@ -187,7 +175,7 @@ contract UserProfile is AccessControl, Pausable {
         Profile storage profile = profiles[_oldAddress];
         if (!profile.isRegistered) revert ProfileDoesNotExist();
         if (msg.sender != profile.recoveryAddress) revert Unauthorized();
-        
+
         profile.recoveryRequestTime = block.timestamp;
         emit RecoveryRequested(_oldAddress, block.timestamp);
     }
@@ -206,10 +194,10 @@ contract UserProfile is AccessControl, Pausable {
         // Transfer profile to new address
         profiles[msg.sender] = oldProfile;
         delete profiles[_oldAddress];
-        
+
         // Update username index
         usernameIndex[oldProfile.username].userAddress = msg.sender;
-        
+
         emit RecoveryExecuted(_oldAddress, msg.sender);
     }
 

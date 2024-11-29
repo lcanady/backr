@@ -35,7 +35,7 @@ contract QuadraticFunding {
     uint256 public currentRound;
     uint256 public constant ROUND_DURATION = 14 days;
     mapping(address => bool) public admins;
-    
+
     // Analytics
     struct RoundAnalytics {
         uint256 uniqueContributors;
@@ -43,16 +43,21 @@ contract QuadraticFunding {
         uint256 averageContribution;
         uint256 medianContribution;
     }
+
     mapping(uint256 => RoundAnalytics) public roundAnalytics;
 
     // Events
     event RoundStarted(uint256 indexed roundId, uint256 matchingPool);
-    event ContributionAdded(uint256 indexed roundId, uint256 indexed projectId, address indexed contributor, uint256 amount);
+    event ContributionAdded(
+        uint256 indexed roundId, uint256 indexed projectId, address indexed contributor, uint256 amount
+    );
     event RoundFinalized(uint256 indexed roundId, uint256 totalMatching);
     event MatchingFundsDistributed(uint256 indexed roundId, uint256 indexed projectId, uint256 amount);
     event RoundCancelledEvent(uint256 indexed roundId);
     event ParticipantVerified(address indexed participant, bool eligible);
-    event RoundConfigured(uint256 indexed roundId, uint256 startTime, uint256 endTime, uint256 minContribution, uint256 maxContribution);
+    event RoundConfigured(
+        uint256 indexed roundId, uint256 startTime, uint256 endTime, uint256 minContribution, uint256 maxContribution
+    );
     event MatchingPoolContribution(uint256 indexed roundId, address indexed contributor, uint256 amount);
 
     // Errors
@@ -105,7 +110,7 @@ contract QuadraticFunding {
     function contributeToMatchingPool(uint256 _roundId) external payable {
         Round storage round = rounds[_roundId];
         if (round.isFinalized || round.isCancelled) revert RoundNotActive();
-        
+
         round.matchingPool += msg.value;
         emit MatchingPoolContribution(_roundId, msg.sender, msg.value);
     }
@@ -147,14 +152,14 @@ contract QuadraticFunding {
     function cancelRound() external onlyAdmin {
         uint256 roundId = currentRound - 1;
         Round storage round = rounds[roundId];
-        
+
         if (round.isFinalized) revert RoundAlreadyFinalized();
         round.isCancelled = true;
-        
+
         // Return matching pool to admin
         (bool sent,) = msg.sender.call{value: round.matchingPool}("");
         require(sent, "Failed to return matching pool");
-        
+
         emit RoundCancelledEvent(roundId);
     }
 
@@ -212,7 +217,9 @@ contract QuadraticFunding {
     function _updateAnalytics(uint256 _roundId, uint256 _contributionAmount) internal {
         RoundAnalytics storage analytics = roundAnalytics[_roundId];
         analytics.uniqueContributors++;
-        analytics.averageContribution = (analytics.averageContribution * (analytics.uniqueContributors - 1) + _contributionAmount) / analytics.uniqueContributors;
+        analytics.averageContribution = (
+            analytics.averageContribution * (analytics.uniqueContributors - 1) + _contributionAmount
+        ) / analytics.uniqueContributors;
     }
 
     /// @notice Get analytics for a specific round
@@ -225,7 +232,8 @@ contract QuadraticFunding {
     function isRoundActive() public view returns (bool) {
         if (currentRound == 0) return false;
         Round storage round = rounds[currentRound - 1];
-        return block.timestamp >= round.startTime && block.timestamp <= round.endTime && !round.isFinalized && !round.isCancelled;
+        return block.timestamp >= round.startTime && block.timestamp <= round.endTime && !round.isFinalized
+            && !round.isCancelled;
     }
 
     /// @notice Get the total contribution amount for a project in a round

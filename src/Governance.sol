@@ -143,13 +143,13 @@ contract Governance is Ownable, ReentrancyGuard {
         if (delegates[account] != address(0)) {
             return 0;
         }
-        
+
         // Get their token balance
         uint256 tokenBalance = platformToken.balanceOf(account);
-        
+
         // Add any delegated amount
         uint256 delegatedPower = delegatedAmount[account];
-        
+
         return tokenBalance + delegatedPower;
     }
 
@@ -160,10 +160,7 @@ contract Governance is Ownable, ReentrancyGuard {
     function cancelProposal(uint256 proposalId) external {
         Proposal storage proposal = proposals[proposalId];
         require(!proposal.executed, "Proposal already executed");
-        require(
-            msg.sender == proposal.proposer || msg.sender == owner(),
-            "Only proposer or owner can cancel"
-        );
+        require(msg.sender == proposal.proposer || msg.sender == owner(), "Only proposer or owner can cancel");
         require(block.timestamp <= proposal.endTime, "Voting period ended");
 
         // Reset voting data

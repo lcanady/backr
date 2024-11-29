@@ -18,6 +18,7 @@ contract Badge is ERC721URIStorage, Ownable {
         POWER_BACKER, // Backed more than 5 projects
         LIQUIDITY_PROVIDER, // Provided significant liquidity
         GOVERNANCE_ACTIVE // Participated in multiple proposals
+
     }
 
     // Badge progression tiers
@@ -77,11 +78,7 @@ contract Badge is ERC721URIStorage, Ownable {
      * @param badgeType Type of badge to award
      * @param uri Metadata URI for the badge
      */
-    function awardBadge(
-        address recipient,
-        BadgeType badgeType,
-        string memory uri
-    ) external onlyOwner {
+    function awardBadge(address recipient, BadgeType badgeType, string memory uri) external onlyOwner {
         require(!hasBadge[recipient][badgeType], "Badge already awarded");
 
         _tokenIds++;
@@ -89,7 +86,7 @@ contract Badge is ERC721URIStorage, Ownable {
 
         _safeMint(recipient, newTokenId);
         _setTokenURI(newTokenId, uri);
-        
+
         badgeTypes[newTokenId] = badgeType;
         badgeTiers[newTokenId] = BadgeTier.BRONZE;
         hasBadge[recipient][badgeType] = true;
@@ -104,7 +101,7 @@ contract Badge is ERC721URIStorage, Ownable {
     function revokeBadge(uint256 tokenId) external onlyOwner {
         address holder = ownerOf(tokenId);
         BadgeType badgeType = badgeTypes[tokenId];
-        
+
         _burn(tokenId);
         hasBadge[holder][badgeType] = false;
         delete badgeTypes[tokenId];
@@ -120,12 +117,12 @@ contract Badge is ERC721URIStorage, Ownable {
      */
     function recordAction(address user, BadgeType badgeType) external onlyOwner {
         userActions[user][badgeType]++;
-        
+
         // Check if user has the badge and can progress to next tier
         if (hasBadge[user][badgeType]) {
             uint256 tokenId = getUserBadgeTokenId(user, badgeType);
             BadgeTier currentTier = badgeTiers[tokenId];
-            
+
             if (currentTier != BadgeTier.PLATINUM) {
                 BadgeTier nextTier = BadgeTier(uint256(currentTier) + 1);
                 if (userActions[user][badgeType] >= tierRequirements[badgeType][nextTier]) {

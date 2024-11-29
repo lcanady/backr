@@ -112,6 +112,9 @@ backr/
 
    # In a new terminal, deploy to local network
    forge script script/Deploy.s.sol:DeployScript --rpc-url http://localhost:8545 --private-key <PRIVATE_KEY> --broadcast
+
+   # Initialize the protocol with funding and sample data
+   forge script script/Setup.s.sol:SetupScript --rpc-url http://localhost:8545 --private-key <PRIVATE_KEY> --broadcast
    ```
 
 2. **Testing**
@@ -146,6 +149,62 @@ backr/
    # Verify on Etherscan (after deployment)
    forge verify-contract <DEPLOYED_ADDRESS> src/Contract.sol:Contract --chain-id <CHAIN_ID> --api-key $ETHERSCAN_API_KEY
    ```
+
+### Deployment
+
+1. Set up your environment variables by creating a `.env` file:
+```shell
+PRIVATE_KEY=your_private_key_here
+```
+
+2. Deploy the contracts:
+```shell
+# For local deployment (Anvil)
+forge script script/Deploy.s.sol:DeployScript --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+
+# For testnet deployment (Sepolia)
+forge script script/Deploy.s.sol:DeployScript --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+
+# For mainnet deployment
+forge script script/Deploy.s.sol:DeployScript --rpc-url $MAINNET_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+```
+
+The deployment script will:
+1. Deploy PlatformToken
+2. Deploy UserProfile
+3. Deploy Project (with UserProfile dependency)
+4. Deploy QuadraticFunding (with Project dependency)
+
+3. Initialize the protocol:
+```shell
+# For local deployment (Anvil)
+forge script script/Setup.s.sol:SetupScript --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+```
+
+The setup script will:
+1. Create a profile for the deployer
+2. Create an initial funding round with a 10 ETH matching pool
+3. Create a sample project with one milestone (1 ETH funding, 10 votes required)
+4. Verify the deployer as an eligible participant
+5. Make an initial contribution of 1 ETH to the sample project
+
+After deployment and setup, save the deployed contract addresses for future reference. The setup script will output these addresses in the console.
+
+### Protocol Initialization
+
+After deployment, the protocol will be initialized with:
+
+- **User Profile**: A deployer profile with basic metadata
+- **Funding Round**: Active round with:
+  - 10 ETH matching pool
+  - 14-day duration
+  - Min contribution: 0.01 ETH
+  - Max contribution: 10 ETH
+- **Sample Project**: Initial project with:
+  - Single milestone
+  - 1 ETH funding requirement
+  - 10 votes needed for completion
+- **Initial Funding**: 1 ETH contributed to the sample project
 
 ### Common Tasks
 

@@ -15,6 +15,7 @@ contract UserProfile is AccessControl, Pausable {
 
     uint256 public constant PROFILE_UPDATE_COOLDOWN = 1 days;
     uint256 public constant RECOVERY_DELAY = 3 days;
+    uint256 public constant MAX_REPUTATION = 1000;
 
     // Structs
     struct Profile {
@@ -63,9 +64,12 @@ contract UserProfile is AccessControl, Pausable {
     error RecoveryDelayNotMet();
     error NoRecoveryRequested();
     error Unauthorized();
+    error InvalidReputationScore();
 
     constructor() {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(REPUTATION_MANAGER_ROLE, msg.sender);
+        _grantRole(VERIFIER_ROLE, msg.sender);
     }
 
     /// @notice Creates a new user profile
@@ -144,6 +148,7 @@ contract UserProfile is AccessControl, Pausable {
         onlyRole(REPUTATION_MANAGER_ROLE)
     {
         if (!profiles[_user].isRegistered) revert ProfileDoesNotExist();
+        if (_newScore > MAX_REPUTATION) revert InvalidReputationScore();
 
         profiles[_user].reputationScore = _newScore;
         emit ReputationUpdated(_user, _newScore);

@@ -9,10 +9,10 @@ import {PlatformToken} from "../src/PlatformToken.sol";
 
 contract SetupScript is Script {
     // Contract addresses from deployment
-    address public platformToken = 0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9;
-    address public userProfile = 0x5FC8d32690cc91D4c39d9d3abcBD16989F875707;
-    address payable public project = payable(0x0165878A594ca255338adfa4d48449f69242Eb8F);
-    address public quadraticFunding = 0xa513E6E4b8f2a923D98304ec87F64353C4D5C853;
+    address public platformToken = 0x0DCd1Bf9A1b36cE34237eEaFef220932846BCD82;
+    address public userProfile = 0x9A676e781A523b5d0C0e43731313A708CB607508;
+    address payable public project = payable(0x0B306BF915C4d645ff596e518fAf3F9669b97016);
+    address public quadraticFunding = 0x959922bE3CAee4b8Cd9a407cc3ac1C251C2007B1;
 
     function setUp() public {}
 
@@ -22,8 +22,35 @@ contract SetupScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // 1. Setup UserProfile
-        UserProfile(userProfile).createProfile("Deployer", "A sample deployer bio", "IPFS://profile-metadata");
+        UserProfile userProfileContract = UserProfile(userProfile);
+        
+        // Create deployer's profile
+        userProfileContract.createProfile(
+            "Deployer",
+            "A sample deployer bio",
+            "IPFS://profile-metadata"
+        );
         console2.log("Created profile for deployer:", deployer);
+
+        // Grant roles
+        bytes32 reputationManagerRole = userProfileContract.REPUTATION_MANAGER_ROLE();
+        bytes32 verifierRole = userProfileContract.VERIFIER_ROLE();
+        
+        userProfileContract.grantRole(reputationManagerRole, deployer);
+        userProfileContract.grantRole(verifierRole, deployer);
+        console2.log("Granted reputation manager and verifier roles to deployer");
+
+        // Set recovery address
+        userProfileContract.setRecoveryAddress(deployer);
+        console2.log("Set recovery address for deployer's profile");
+
+        // Update reputation score
+        userProfileContract.updateReputation(deployer, 100);
+        console2.log("Updated deployer's reputation score to 100");
+
+        // Verify the profile
+        userProfileContract.verifyProfile(deployer);
+        console2.log("Verified deployer's profile");
 
         // 2. Setup initial funding round in QuadraticFunding
         QuadraticFunding qf = QuadraticFunding(quadraticFunding);

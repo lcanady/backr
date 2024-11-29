@@ -231,4 +231,79 @@ contract UserProfileTest is Test {
         userProfile.createProfile("bob", "Smart contract developer", "ipfs://metadata2");
         assertEq(userProfile.totalUsers(), 2);
     }
+
+    function test_DeployerRoleSetup() public {
+        address deployer = makeAddr("deployer");
+        vm.startPrank(deployer);
+        
+        // Create a new UserProfile contract with deployer as the sender
+        UserProfile newProfile = new UserProfile();
+        
+        // Check that deployer has all roles
+        assertTrue(newProfile.hasRole(newProfile.DEFAULT_ADMIN_ROLE(), deployer));
+        assertTrue(newProfile.hasRole(newProfile.REPUTATION_MANAGER_ROLE(), deployer));
+        assertTrue(newProfile.hasRole(newProfile.VERIFIER_ROLE(), deployer));
+        
+        vm.stopPrank();
+    }
+
+    function test_CompleteVerificationFlow() public {
+        // Create profile
+        vm.startPrank(user1);
+        userProfile.createProfile("alice", "Web3 developer", "ipfs://metadata1");
+        
+        // Set recovery address
+        address recoveryAddr = makeAddr("recovery");
+        userProfile.setRecoveryAddress(recoveryAddr);
+        vm.stopPrank();
+
+        // Update reputation
+        vm.prank(reputationManager);
+        userProfile.updateReputation(user1, 100);
+
+        // Verify profile
+        vm.prank(verifier);
+        userProfile.verifyProfile(user1);
+
+        // Check final state
+        UserProfile.Profile memory profile = userProfile.getProfile(user1);
+        assertTrue(profile.isVerified);
+        assertEq(profile.reputationScore, 100);
+        assertEq(profile.recoveryAddress, recoveryAddr);
+    }
+
+    function test_ReputationBoundaries() public {
+        vm.prank(user1);
+        userProfile.createProfile("alice", "Web3 developer", "ipfs://metadata1");
+
+        vm.startPrank(reputationManager);
+        
+        // Test maximum reputation
+        userProfile.updateReputation(user1, 1000);
+        UserProfile.Profile memory profile = userProfile.getProfile(user1);
+        assertEq(profile.reputationScore, 1000);
+        
+        // Test minimum reputation
+        userProfile.updateReputation(user1, 0);
+        profile = userProfile.getProfile(user1);
+        assertEq(profile.reputationScore, 0);
+        
+        vm.stopPrank();
+    }
+
+    function testFail_ExceedMaxReputation() public {
+        vm.prank(user1);
+        userProfile.createProfile("alice", "Web3 developer", "ipfs://metadata1");
+
+        vm.prank(reputationManager);
+        userProfile.updateReputation(user1, 1001); // Should fail as max is 1000
+    }
+
+    function testFail_NegativeReputation() public {
+        vm.prank(user1);
+        userProfile.createProfile("alice", "Web3 developer", "ipfs://metadata1");
+
+        vm.prank(reputationManager);
+        userProfile.updateReputation(user1, type(uint256).max); // Should fail as it exceeds max
+    }
 }

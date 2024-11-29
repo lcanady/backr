@@ -194,7 +194,13 @@ After deployment and setup, save the deployed contract addresses for future refe
 
 After deployment, the protocol will be initialized with:
 
-- **User Profile**: A deployer profile with basic metadata
+- **User Profile**: A deployer profile with:
+  - Basic profile metadata
+  - Reputation Manager role
+  - Verifier role
+  - Recovery address set
+  - Initial reputation score of 100
+  - Verified status
 - **Funding Round**: Active round with:
   - 10 ETH matching pool
   - 14-day duration
@@ -205,6 +211,12 @@ After deployment, the protocol will be initialized with:
   - 1 ETH funding requirement
   - 10 votes needed for completion
 - **Initial Funding**: 1 ETH contributed to the sample project
+
+The deployer account will have full administrative capabilities:
+- Can manage user reputation scores
+- Can verify other user profiles
+- Can recover their profile if needed
+- Has elevated permissions for platform governance
 
 ### Common Tasks
 

@@ -31,15 +31,15 @@ contract QuadraticFundingTest is Test {
 
         // Create user profiles
         vm.startPrank(creator);
-        userProfile.createProfile("creator", "Project Creator");
+        userProfile.createProfile("creator", "Project Creator", "ipfs://creator");
         vm.stopPrank();
 
         vm.startPrank(contributor1);
-        userProfile.createProfile("contributor1", "Contributor 1");
+        userProfile.createProfile("contributor1", "Contributor 1", "ipfs://contributor1");
         vm.stopPrank();
 
         vm.startPrank(contributor2);
-        userProfile.createProfile("contributor2", "Contributor 2");
+        userProfile.createProfile("contributor2", "Contributor 2", "ipfs://contributor2");
         vm.stopPrank();
 
         // Create a test project
@@ -58,7 +58,15 @@ contract QuadraticFundingTest is Test {
     function test_StartRound() public {
         vm.deal(admin, 10 ether);
         vm.startPrank(admin);
-        qf.startRound{value: 10 ether}();
+        
+        QuadraticFunding.RoundConfig memory config = QuadraticFunding.RoundConfig({
+            startTime: block.timestamp,
+            endTime: block.timestamp + 14 days,
+            minContribution: 0.1 ether,
+            maxContribution: 5 ether
+        });
+        
+        qf.createRound{value: 10 ether}(config);
         assertTrue(qf.isRoundActive());
         vm.stopPrank();
     }
@@ -66,8 +74,16 @@ contract QuadraticFundingTest is Test {
     function testFail_StartRoundWithActiveRound() public {
         vm.deal(admin, 20 ether);
         vm.startPrank(admin);
-        qf.startRound{value: 10 ether}();
-        qf.startRound{value: 10 ether}(); // Should fail
+        
+        QuadraticFunding.RoundConfig memory config = QuadraticFunding.RoundConfig({
+            startTime: block.timestamp,
+            endTime: block.timestamp + 14 days,
+            minContribution: 0.1 ether,
+            maxContribution: 5 ether
+        });
+        
+        qf.createRound{value: 10 ether}(config);
+        qf.createRound{value: 10 ether}(config); // Should fail
         vm.stopPrank();
     }
 
@@ -75,7 +91,19 @@ contract QuadraticFundingTest is Test {
         // Start round
         vm.deal(admin, 10 ether);
         vm.startPrank(admin);
-        qf.startRound{value: 10 ether}();
+        
+        QuadraticFunding.RoundConfig memory config = QuadraticFunding.RoundConfig({
+            startTime: block.timestamp,
+            endTime: block.timestamp + 14 days,
+            minContribution: 0.1 ether,
+            maxContribution: 5 ether
+        });
+        
+        qf.createRound{value: 10 ether}(config);
+
+        // Verify participants after round creation
+        qf.verifyParticipant(contributor1, true);
+        qf.verifyParticipant(contributor2, true);
         vm.stopPrank();
 
         // Make contributions
@@ -92,7 +120,19 @@ contract QuadraticFundingTest is Test {
         // Start round
         vm.deal(admin, 10 ether);
         vm.startPrank(admin);
-        qf.startRound{value: 10 ether}();
+        
+        QuadraticFunding.RoundConfig memory config = QuadraticFunding.RoundConfig({
+            startTime: block.timestamp,
+            endTime: block.timestamp + 14 days,
+            minContribution: 0.1 ether,
+            maxContribution: 5 ether
+        });
+        
+        qf.createRound{value: 10 ether}(config);
+
+        // Verify participants after round creation
+        qf.verifyParticipant(contributor1, true);
+        qf.verifyParticipant(contributor2, true);
         vm.stopPrank();
 
         // Make contributions
@@ -134,7 +174,15 @@ contract QuadraticFundingTest is Test {
         // Start round
         vm.deal(admin, 10 ether);
         vm.startPrank(admin);
-        qf.startRound{value: 10 ether}();
+        
+        QuadraticFunding.RoundConfig memory config = QuadraticFunding.RoundConfig({
+            startTime: block.timestamp,
+            endTime: block.timestamp + 14 days,
+            minContribution: 0.1 ether,
+            maxContribution: 5 ether
+        });
+        
+        qf.createRound{value: 10 ether}(config);
 
         // Try to finalize before round ends
         qf.finalizeRound(); // Should fail

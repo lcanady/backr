@@ -33,12 +33,17 @@ contract Governance is Ownable, ReentrancyGuard {
 
     mapping(uint256 => Proposal) public proposals;
     mapping(uint256 => uint256) public proposalExecutionTime;
+    mapping(address => address) public delegates;
+    mapping(address => uint256) public delegatedAmount; // Track total amount delegated to an address
+    mapping(address => address[]) private delegators; // Track who has delegated to an address
 
     event ProposalCreated(
         uint256 indexed proposalId, address indexed proposer, string description, uint256 startTime, uint256 endTime
     );
     event VoteCast(address indexed voter, uint256 indexed proposalId, bool support, uint256 weight);
     event ProposalExecuted(uint256 indexed proposalId);
+    event DelegateChanged(address indexed delegator, address indexed fromDelegate, address indexed toDelegate);
+    event ProposalCancelled(uint256 indexed proposalId);
 
     constructor(address _platformToken) Ownable() {
         platformToken = IERC20(_platformToken);
@@ -71,6 +76,105 @@ contract Governance is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @dev Delegate voting power to another address
+     * @param delegatee Address to delegate voting power to
+     */
+    function delegate(address delegatee) external {
+        require(delegatee != address(0), "Cannot delegate to zero address");
+        require(delegatee != msg.sender, "Cannot delegate to self");
+
+        address currentDelegate = delegates[msg.sender];
+        uint256 balance = platformToken.balanceOf(msg.sender);
+
+        // Remove delegation from current delegate if exists
+        if (currentDelegate != address(0)) {
+            delegatedAmount[currentDelegate] = delegatedAmount[currentDelegate] - balance;
+        }
+
+        // Add delegation to new delegatee
+        delegatedAmount[delegatee] = delegatedAmount[delegatee] + balance;
+        delegates[msg.sender] = delegatee;
+
+        emit DelegateChanged(msg.sender, currentDelegate, delegatee);
+
+        // Update voting power snapshots for all active proposals
+        for (uint256 i = 1; i <= proposalCount; i++) {
+            Proposal storage proposal = proposals[i];
+            if (block.timestamp <= proposal.endTime && !proposal.executed) {
+                // Update delegator's snapshot if they haven't voted
+                if (!proposal.hasVoted[msg.sender]) {
+                    proposal.votingPowerSnapshot[msg.sender] = 0;
+                }
+                // Update delegatee's snapshot if they haven't voted
+                if (!proposal.hasVoted[delegatee]) {
+                    proposal.votingPowerSnapshot[delegatee] = getVotingPower(delegatee);
+                }
+                if (currentDelegate != address(0) && !proposal.hasVoted[currentDelegate]) {
+                    proposal.votingPowerSnapshot[currentDelegate] = getVotingPower(currentDelegate);
+                }
+            }
+        }
+    }
+
+    /**
+     * @dev Remove a delegator from a delegatee's list
+     * @param delegatee The address to remove the delegator from
+     * @param delegator The delegator to remove
+     */
+    function _removeDelegator(address delegatee, address delegator) internal {
+        address[] storage dels = delegators[delegatee];
+        for (uint256 i = 0; i < dels.length; i++) {
+            if (dels[i] == delegator) {
+                // Move the last element to this position and pop
+                dels[i] = dels[dels.length - 1];
+                dels.pop();
+                break;
+            }
+        }
+    }
+
+    /**
+     * @dev Get total voting power of an address (including delegated power)
+     * @param account Address to check voting power for
+     * @return Total voting power
+     */
+    function getVotingPower(address account) public view returns (uint256) {
+        // If account has delegated their power, they have 0 voting power
+        if (delegates[account] != address(0)) {
+            return 0;
+        }
+        
+        // Get their token balance
+        uint256 tokenBalance = platformToken.balanceOf(account);
+        
+        // Add any delegated amount
+        uint256 delegatedPower = delegatedAmount[account];
+        
+        return tokenBalance + delegatedPower;
+    }
+
+    /**
+     * @dev Cancel a proposal (only proposer or owner can cancel)
+     * @param proposalId ID of the proposal to cancel
+     */
+    function cancelProposal(uint256 proposalId) external {
+        Proposal storage proposal = proposals[proposalId];
+        require(!proposal.executed, "Proposal already executed");
+        require(
+            msg.sender == proposal.proposer || msg.sender == owner(),
+            "Only proposer or owner can cancel"
+        );
+        require(block.timestamp <= proposal.endTime, "Voting period ended");
+
+        // Reset voting data
+        proposal.forVotes = 0;
+        proposal.againstVotes = 0;
+        proposal.executed = true; // Mark as executed to prevent future voting/execution
+
+        emit ProposalCancelled(proposalId);
+    }
+
+    /**
      * @dev Cast a vote on a proposal
      * @param proposalId ID of the proposal
      * @param support True for support, false for against
@@ -82,7 +186,7 @@ contract Governance is Ownable, ReentrancyGuard {
 
         // Take snapshot of voting power if not already taken
         if (proposal.votingPowerSnapshot[msg.sender] == 0) {
-            proposal.votingPowerSnapshot[msg.sender] = platformToken.balanceOf(msg.sender);
+            proposal.votingPowerSnapshot[msg.sender] = getVotingPower(msg.sender);
         }
 
         uint256 votes = proposal.votingPowerSnapshot[msg.sender];

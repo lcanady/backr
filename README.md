@@ -181,3 +181,38 @@ Contributions are welcome! Please read our contributing guidelines before submit
 ## License
 
 This project is licensed under the MIT License.
+
+## TODO
+
+### UserProfile Contract
+- [x] Add access control to updateReputation function
+- [x] Implement rate limiting for profile updates
+- [x] Add profile verification system
+- [x] Create profile indexing for efficient querying
+- [x] Add profile metadata standards for better interoperability
+- [x] Implement profile recovery mechanism
+
+### LiquidityPool Contract
+- [x] Add slippage protection for swaps
+- [x] Implement emergency withdrawal mechanism
+- [x] Add events for pool state changes
+
+### Governance Contract
+- [x] Add proposal execution timelock
+- [x] Implement delegate voting
+- [x] Add proposal cancellation mechanism
+
+### Badge Contract
+- [x] Add badge metadata and URI standards
+- [x] Implement badge revoking mechanism
+- [x] Add badge progression system
+
+### QuadraticFunding Contract
+- [x] Add round cancellation mechanism
+- [x] Implement matching pool contribution mechanism
+- [x] Add contribution verification and validation
+- [x] Implement quadratic funding calculation formula
+- [x] Create round creation and configuration system
+- [x] Add participant eligibility verification
+- [x] Implement fund distribution mechanism
+- [x] Create reporting and analytics system

@@ -24,15 +24,15 @@ contract ProjectTest is Test {
 
         // Create user profiles
         vm.startPrank(creator);
-        userProfile.createProfile("creator", "Project Creator");
+        userProfile.createProfile("creator", "Project Creator", "ipfs://creator");
         vm.stopPrank();
 
         vm.startPrank(contributor1);
-        userProfile.createProfile("contributor1", "Project Contributor 1");
+        userProfile.createProfile("contributor1", "Project Contributor 1", "ipfs://contributor1");
         vm.stopPrank();
 
         vm.startPrank(contributor2);
-        userProfile.createProfile("contributor2", "Project Contributor 2");
+        userProfile.createProfile("contributor2", "Project Contributor 2", "ipfs://contributor2");
         vm.stopPrank();
     }
 

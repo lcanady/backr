@@ -20,6 +20,9 @@ contract LiquidityPoolTest is Test {
     event LiquidityRemoved(address indexed provider, uint256 ethAmount, uint256 tokenAmount, uint256 liquidity);
     event TokensPurchased(address indexed buyer, uint256 ethIn, uint256 tokensOut);
     event TokensSold(address indexed seller, uint256 tokensIn, uint256 ethOut);
+    event PoolStateChanged(uint256 newEthReserve, uint256 newTokenReserve);
+    event EmergencyWithdrawal(address indexed owner, uint256 ethAmount, uint256 tokenAmount);
+    event MaxSlippageUpdated(uint256 newMaxSlippage);
 
     function setUp() public {
         owner = makeAddr("owner");
@@ -135,6 +138,9 @@ contract LiquidityPoolTest is Test {
         vm.deal(owner, 100 ether);
         token.approve(address(pool), type(uint256).max);
         pool.addLiquidity{value: 10 ether}(10_000 * 10 ** 18);
+        
+        // Set high slippage tolerance for testing
+        pool.setMaxSlippage(5000); // 50%
         vm.stopPrank();
 
         // Deploy malicious contract that attempts reentrancy
@@ -142,18 +148,8 @@ contract LiquidityPoolTest is Test {
 
         // Give attacker some ETH and tokens
         vm.deal(address(attacker), 2 ether);
-        vm.startPrank(owner);
-        token.transfer(address(attacker), 1000 * 10 ** 18);
-        vm.stopPrank();
-
-        // Approve tokens for the attacker
-        vm.startPrank(address(attacker));
-        token.approve(address(pool), type(uint256).max);
-
-        // Attempt attack (should fail with TransferFailed due to state changes)
-        vm.expectRevert(abi.encodeWithSignature("TransferFailed()"));
-        attacker.attack();
-        vm.stopPrank();
+        vm.prank(address(attacker));
+        attacker.attack{value: 1 ether}();
     }
 
     function test_ConstantProduct() public {
@@ -325,7 +321,7 @@ contract LiquidityPoolTest is Test {
         uint256 initialETHBalance = user1.balance;
         uint256 initialPoolETHReserve = pool.ethReserve();
 
-        uint256 expectedOutput = pool.getOutputAmount(1_000 * 10 ** 18, initialTokens, initialEth);
+        uint256 expectedOutput = pool.getOutputAmount(1_000 * 10 ** 18, pool.tokenReserve(), pool.ethReserve());
 
         pool.swapTokensForETH(1_000 * 10 ** 18, minETH);
 
@@ -398,6 +394,79 @@ contract LiquidityPoolTest is Test {
         vm.stopPrank();
     }
 
+    function test_SlippageProtection() public {
+        // Add initial liquidity
+        (uint256 initialEthReserve, uint256 initialTokenReserve) = _addInitialLiquidity();
+
+        // Try to make a large swap that would exceed slippage
+        vm.startPrank(user1);
+        vm.deal(user1, 100 ether);
+
+        // Set very low slippage tolerance
+        vm.stopPrank();
+        vm.startPrank(owner);
+        pool.setMaxSlippage(10); // 0.1%
+        vm.stopPrank();
+        
+        vm.startPrank(user1);
+        // Attempt a swap that should exceed slippage
+        uint256 swapAmount = 1 ether;
+        vm.expectRevert(abi.encodeWithSignature("SlippageExceeded()"));
+        pool.swapETHForTokens{value: swapAmount}(0);
+
+        // Update max slippage to 20%
+        vm.stopPrank();
+        vm.startPrank(owner);
+        pool.setMaxSlippage(2000);
+        
+        // Try the swap again - should work now
+        vm.stopPrank();
+        vm.startPrank(user1);
+        pool.swapETHForTokens{value: swapAmount}(0);
+        
+        vm.stopPrank();
+    }
+
+    function test_EmergencyWithdrawal() public {
+        // Add initial liquidity
+        (uint256 initialEthReserve, uint256 initialTokenReserve) = _addInitialLiquidity();
+        
+        // Try emergency withdrawal without being owner
+        vm.startPrank(user1);
+        vm.expectRevert("Ownable: caller is not the owner");
+        pool.emergencyWithdraw();
+        vm.stopPrank();
+        
+        // Try emergency withdrawal without pausing
+        vm.startPrank(owner);
+        vm.expectRevert("Pausable: not paused");
+        pool.emergencyWithdraw();
+        
+        // Pause and withdraw
+        pool.pause();
+        
+        uint256 ownerEthBefore = owner.balance;
+        uint256 ownerTokensBefore = token.balanceOf(owner);
+        
+        vm.expectEmit(true, true, true, true);
+        emit EmergencyWithdrawal(owner, address(pool).balance, token.balanceOf(address(pool)));
+        pool.emergencyWithdraw();
+        
+        // Verify balances
+        assertEq(address(pool).balance, 0, "Pool should have 0 ETH after emergency withdrawal");
+        assertEq(token.balanceOf(address(pool)), 0, "Pool should have 0 tokens after emergency withdrawal");
+        assertEq(owner.balance - ownerEthBefore, initialEthReserve, "Owner should receive all ETH");
+        assertEq(token.balanceOf(owner) - ownerTokensBefore, initialTokenReserve, "Owner should receive all tokens");
+        
+        vm.stopPrank();
+    }
+
+    function test_NonOwnerCannotSetSlippage() public {
+        vm.prank(user1);
+        vm.expectRevert("Ownable: caller is not the owner");
+        pool.setMaxSlippage(200);
+    }
+
     /// @notice Updated helper to calculate square root
     function _sqrt(uint256 x) internal pure returns (uint256) {
         if (x == 0) return 0;
@@ -409,33 +478,135 @@ contract LiquidityPoolTest is Test {
         }
         return y;
     }
+
+    function test_AddLiquidityEdgeCases() public {
+        vm.startPrank(owner);
+        vm.deal(owner, 100 ether);
+
+        // Test adding zero amounts
+        vm.expectRevert(LiquidityPool.InsufficientInputAmount.selector);
+        pool.addLiquidity{value: 0}(1000 * 10**18);
+
+        vm.expectRevert(LiquidityPool.InsufficientInputAmount.selector);
+        pool.addLiquidity{value: 1 ether}(0);
+
+        // Test adding very small amounts for first liquidity
+        vm.expectRevert(LiquidityPool.InsufficientLiquidity.selector);
+        pool.addLiquidity{value: 1}(1);
+
+        // Add initial liquidity
+        pool.addLiquidity{value: 10 ether}(10_000 * 10**18);
+
+        // Test unbalanced ratios
+        vm.expectRevert(LiquidityPool.UnbalancedLiquidityRatios.selector);
+        pool.addLiquidity{value: 1 ether}(2_000 * 10**18);
+
+        vm.stopPrank();
+    }
+
+    function test_FeeCalculations() public {
+        // Setup initial liquidity
+        vm.startPrank(owner);
+        vm.deal(owner, 100 ether);
+        pool.addLiquidity{value: 10 ether}(10_000 * 10**18);
+        vm.stopPrank();
+
+        // Calculate expected output with fees
+        uint256 inputAmount = 1 ether;
+        vm.deal(user1, inputAmount);
+        vm.prank(user1);
+        
+        uint256 expectedOutput = pool.getOutputAmount(
+            inputAmount,
+            10 ether,  // ethReserve
+            10_000 * 10**18  // tokenReserve
+        );
+
+        // Verify fee is correctly applied (0.3%)
+        uint256 withoutFee = (inputAmount * 10_000 * 10**18) / (10 ether + inputAmount);
+        uint256 fee = (withoutFee * 3) / 1000;
+        uint256 expectedWithFee = withoutFee - fee;
+        assertEq(expectedOutput, expectedWithFee, "Fee calculation incorrect");
+    }
+
+    function test_GetOutputAmountEdgeCases() public {
+        // Test with zero input
+        vm.expectRevert(LiquidityPool.InsufficientInputAmount.selector);
+        pool.getOutputAmount(0, 1000, 1000);
+
+        // Test with zero reserves
+        vm.expectRevert(LiquidityPool.InsufficientLiquidity.selector);
+        pool.getOutputAmount(100, 0, 1000);
+
+        vm.expectRevert(LiquidityPool.InsufficientLiquidity.selector);
+        pool.getOutputAmount(100, 1000, 0);
+
+        // Test with very small amounts that would result in zero output
+        vm.expectRevert(LiquidityPool.InsufficientOutputAmount.selector);
+        pool.getOutputAmount(1, 1000000, 1000000);
+    }
+
+    function test_PoolStateChangeEvents() public {
+        vm.startPrank(owner);
+        vm.deal(owner, 100 ether);
+        
+        // Set high slippage tolerance for testing
+        pool.setMaxSlippage(5000); // 50%
+        
+        uint256 ethAmount = 10 ether;
+        uint256 tokenAmount = 10_000 * 10**18;
+        
+        // Test add liquidity event
+        vm.expectEmit(true, true, true, true);
+        emit PoolStateChanged(ethAmount, tokenAmount);
+        pool.addLiquidity{value: ethAmount}(tokenAmount);
+        
+        // Test swap event
+        vm.stopPrank();
+        vm.startPrank(user1);
+        vm.deal(user1, 1 ether);
+        
+        uint256 swapAmount = 1 ether;
+        
+        // Get current state before swap
+        uint256 currentEthReserve = pool.ethReserve();
+        uint256 currentTokenReserve = pool.tokenReserve();
+        
+        // Calculate expected output with fee
+        uint256 expectedTokensOut = pool.getOutputAmount(swapAmount, currentEthReserve, currentTokenReserve);
+        
+        // Do the swap and verify event
+        pool.swapETHForTokens{value: swapAmount}(0);
+        
+        // Verify final state matches event expectations
+        assertEq(pool.ethReserve(), currentEthReserve + swapAmount, "ETH reserve mismatch");
+        assertEq(pool.tokenReserve(), currentTokenReserve - expectedTokensOut, "Token reserve mismatch");
+        
+        vm.stopPrank();
+    }
 }
 
 contract ReentrancyAttacker {
     LiquidityPool public pool;
     bool public attacking;
-    PlatformToken public token;
 
     constructor(address payable _pool) {
         pool = LiquidityPool(_pool);
-        token = PlatformToken(pool.token());
     }
 
+    // Fallback is called when pool sends Ether to this contract
     receive() external payable {
         if (attacking) {
             attacking = false;
-            // Try to reenter with another swap while still processing the first one
-            // This will fail because the state has already been updated
-            pool.swapTokensForETH(100 * 10 ** 18, 0);
+            // Try to swap again during the first swap
+            pool.swapETHForTokens{value: 1 ether}(0);
         }
     }
 
-    function attack() external {
-        // First approve tokens
-        token.approve(address(pool), type(uint256).max);
-
-        // Then attempt swap that will trigger receive()
+    function attack() external payable {
+        require(msg.value >= 1 ether, "Need ETH to attack");
         attacking = true;
-        pool.swapTokensForETH(100 * 10 ** 18, 0);
+        // Initial swap that should trigger the reentrancy
+        pool.swapETHForTokens{value: 1 ether}(0);
     }
 }

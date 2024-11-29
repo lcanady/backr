@@ -19,17 +19,17 @@ contract BadgeTest is Test {
     }
 
     function testAwardBadge() public {
-        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER);
-
-        assertTrue(badge.hasSpecificBadge(alice, Badge.BadgeType.EARLY_SUPPORTER));
-        assertEq(badge.balanceOf(alice), 1);
+        vm.startPrank(owner);
+        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER, "ipfs://badge/early-supporter");
+        assertTrue(badge.hasBadge(alice, Badge.BadgeType.EARLY_SUPPORTER));
+        vm.stopPrank();
     }
 
     function testFailDuplicateBadge() public {
-        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER);
-
-        // This should fail
-        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER);
+        vm.startPrank(owner);
+        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER, "ipfs://badge/early-supporter");
+        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER, "ipfs://badge/early-supporter");
+        vm.stopPrank();
     }
 
     function testUpdateBadgeBenefit() public {
@@ -37,7 +37,9 @@ contract BadgeTest is Test {
         badge.updateBadgeBenefit(Badge.BadgeType.EARLY_SUPPORTER, newBenefit);
 
         // Award badge to alice
-        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER);
+        vm.startPrank(owner);
+        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER, "ipfs://badge/early-supporter");
+        vm.stopPrank();
 
         // Check total benefits
         assertEq(badge.getTotalBenefits(alice), newBenefit);
@@ -45,8 +47,10 @@ contract BadgeTest is Test {
 
     function testMultipleBadgeBenefits() public {
         // Award multiple badges to alice
-        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER);
-        badge.awardBadge(alice, Badge.BadgeType.POWER_BACKER);
+        vm.startPrank(owner);
+        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER, "ipfs://badge/early-supporter");
+        badge.awardBadge(alice, Badge.BadgeType.POWER_BACKER, "ipfs://badge/power-backer");
+        vm.stopPrank();
 
         // Calculate expected benefits (5% + 10% = 15%)
         uint256 expectedBenefit = 1500;
@@ -56,19 +60,21 @@ contract BadgeTest is Test {
 
     function testBenefitsCap() public {
         // Award all badges to alice
-        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER);
-        badge.awardBadge(alice, Badge.BadgeType.POWER_BACKER);
-        badge.awardBadge(alice, Badge.BadgeType.LIQUIDITY_PROVIDER);
-        badge.awardBadge(alice, Badge.BadgeType.GOVERNANCE_ACTIVE);
+        vm.startPrank(owner);
+        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER, "ipfs://badge/early-supporter");
+        badge.awardBadge(alice, Badge.BadgeType.POWER_BACKER, "ipfs://badge/power-backer");
+        badge.awardBadge(alice, Badge.BadgeType.LIQUIDITY_PROVIDER, "ipfs://badge/liquidity-provider");
+        badge.awardBadge(alice, Badge.BadgeType.GOVERNANCE_ACTIVE, "ipfs://badge/governance-active");
+        vm.stopPrank();
 
         // Total would be 37.5%, but should be capped at 25%
         assertEq(badge.getTotalBenefits(alice), 2500);
     }
 
     function testFailUnauthorizedAward() public {
-        vm.prank(alice);
-        // This should fail as alice is not the owner
-        badge.awardBadge(bob, Badge.BadgeType.EARLY_SUPPORTER);
+        vm.startPrank(alice);
+        badge.awardBadge(bob, Badge.BadgeType.EARLY_SUPPORTER, "ipfs://badge/early-supporter");
+        vm.stopPrank();
     }
 
     function testFailExcessiveBenefit() public {

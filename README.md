@@ -1,66 +1,183 @@
-## Foundry
+# Backr
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Backr is a decentralized platform built on Ethereum that enables transparent and accountable project funding through milestone-based releases and community governance. The platform incorporates quadratic funding mechanisms, liquidity pools, and achievement badges to create a robust ecosystem for project creators and backers.
 
-Foundry consists of:
+## Key Features
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+### 🎯 Milestone-Based Project Funding
+- Create projects with detailed milestones
+- Secure fund release through community voting
+- Transparent progress tracking
 
-## Documentation
+### 🏛 Decentralized Governance
+- Community-driven decision making
+- Proposal creation and voting system
+- Time-locked execution for security
 
-https://book.getfoundry.sh/
+### 💧 Liquidity Pool
+- Automated Market Maker (AMM) for ETH/BACKR trading
+- Low 0.3% fee structure
+- Minimum liquidity requirements for stability
 
-## Usage
+### 🏆 Achievement Badges
+- NFT-based recognition system
+- Multiple badge types:
+  - Early Supporter
+  - Power Backer
+  - Liquidity Provider
+  - Governance Active
+- Stackable benefits up to 25%
 
-### Build
+### 💫 Quadratic Funding
+- Fair fund distribution
+- Matching pool for contributions
+- Round-based funding cycles
 
+## Architecture
+
+### Smart Contracts
+
+- `Project.sol`: Core contract managing project creation and milestone tracking
+- `Governance.sol`: DAO functionality for platform governance
+- `LiquidityPool.sol`: AMM implementation for token liquidity
+- `Badge.sol`: NFT-based achievement system
+- `QuadraticFunding.sol`: Implementation of quadratic funding mechanism
+- `PlatformToken.sol`: BACKR token with staking capabilities
+- `UserProfile.sol`: User reputation and profile management
+
+### Security Features
+- Reentrancy guards
+- Time-locked execution
+- Access control mechanisms
+- Minimum liquidity requirements
+- Pausable functionality
+
+## Development
+
+### Technical Stack
+
+- Solidity ^0.8.13
+- OpenZeppelin Contracts
+- [Foundry](https://book.getfoundry.sh/) - Development Framework
+
+### Prerequisites
+
+- [Foundry toolkit](https://book.getfoundry.sh/getting-started/installation)
+- Node.js and npm
+- Git
+
+### Local Setup
+
+1. Clone the repository
 ```shell
-$ forge build
+git clone https://github.com/yourusername/backr.git
+cd backr
 ```
 
-### Test
-
+2. Install dependencies
 ```shell
-$ forge test
+forge install
 ```
 
-### Format
-
+3. Build the project
 ```shell
-$ forge fmt
+forge build
 ```
 
-### Gas Snapshots
-
+4. Run tests
 ```shell
-$ forge snapshot
+forge test
 ```
 
-### Anvil
-
+5. Format code
 ```shell
-$ anvil
+forge fmt
 ```
 
-### Deploy
-
+6. Check gas usage
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+forge snapshot
 ```
 
-### Cast
+### Local Development
 
+1. Start local node
 ```shell
-$ cast <subcommand>
+anvil
 ```
 
-### Help
+2. Deploy Protocol Contracts
+
+The deployment order matters due to contract dependencies. Use the following commands:
 
 ```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+# Deploy UserProfile contract first
+forge script script/deploy/DeployUserProfile.s.sol:DeployUserProfile --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+
+# Deploy PlatformToken
+forge script script/deploy/DeployPlatformToken.s.sol:DeployPlatformToken --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+
+# Deploy Badge system (requires PlatformToken address)
+forge script script/deploy/DeployBadge.s.sol:DeployBadge --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+
+# Deploy Governance (requires PlatformToken address)
+forge script script/deploy/DeployGovernance.s.sol:DeployGovernance --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+
+# Deploy LiquidityPool (requires PlatformToken address)
+forge script script/deploy/DeployLiquidityPool.s.sol:DeployLiquidityPool --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+
+# Deploy Project contract (requires UserProfile address)
+forge script script/deploy/DeployProject.s.sol:DeployProject --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+
+# Deploy QuadraticFunding (requires Project contract address)
+forge script script/deploy/DeployQuadraticFunding.s.sol:DeployQuadraticFunding --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
 ```
+
+For testnet or mainnet deployment, replace `http://localhost:8545` with your network RPC URL.
+
+3. Verify Contracts (for public networks)
+```shell
+forge verify-contract --chain-id <CHAIN_ID> \
+    --compiler-version <COMPILER_VERSION> \
+    <CONTRACT_ADDRESS> \
+    <CONTRACT_NAME> \
+    <ETHERSCAN_API_KEY>
+```
+
+4. Initialize Protocol
+
+After deployment, the following initialization steps are required:
+
+```shell
+# Initialize LiquidityPool with initial liquidity
+cast send --private-key $PRIVATE_KEY <LIQUIDITY_POOL_ADDRESS> \
+    "addLiquidity(uint256)" \
+    <TOKEN_AMOUNT> \
+    --value <ETH_AMOUNT>
+
+# Set up initial governance parameters
+cast send --private-key $PRIVATE_KEY <GOVERNANCE_ADDRESS> \
+    "initialize()" 
+
+# Initialize QuadraticFunding with first round
+cast send --private-key $PRIVATE_KEY <QUADRATIC_FUNDING_ADDRESS> \
+    "startRound()" \
+    --value <MATCHING_POOL_AMOUNT>
+```
+
+### Additional Commands
+
+For more detailed information about available commands:
+```shell
+forge --help
+anvil --help
+cast --help
+```
+
+## Contributing
+
+Contributions are welcome! Please read our contributing guidelines before submitting pull requests.
+
+## License
+
+This project is licensed under the MIT License.

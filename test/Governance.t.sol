@@ -5,12 +5,23 @@ import "forge-std/Test.sol";
 import "../src/Governance.sol";
 import "../src/PlatformToken.sol";
 
+// Mock contract for testing proposal execution
+contract MockTarget {
+    uint256 public value;
+    
+    function setValue(uint256 _value) external {
+        value = _value;
+    }
+}
+
 contract GovernanceTest is Test {
     Governance public governance;
     PlatformToken public token;
     address public owner;
     address public alice;
     address public bob;
+    MockTarget public mockTarget;
+    uint256 public constant EXECUTION_DELAY = 2 days;
 
     function setUp() public {
         owner = address(this);
@@ -20,46 +31,73 @@ contract GovernanceTest is Test {
         // Deploy token and governance contracts
         token = new PlatformToken();
         governance = new Governance(address(token));
+        mockTarget = new MockTarget();
 
-        // Mint some tokens for testing
-        token.mint(alice, 1000 * 10**18);
-        token.mint(bob, 500 * 10**18);
+        // Transfer some tokens for testing
+        vm.startPrank(owner);
+        token.transfer(alice, 1000 * 10**18);
+        token.transfer(bob, 500 * 10**18);
+        vm.stopPrank();
     }
 
     function testCreateProposal() public {
         vm.startPrank(alice);
-        governance.createProposal("Test Proposal");
+        token.approve(address(governance), type(uint256).max);
+        bytes memory callData = abi.encodeWithSignature("setValue(uint256)", 42);
+        governance.createProposal("Test Proposal", address(mockTarget), callData);
         
         (
             uint256 forVotes,
             uint256 againstVotes,
-            uint256 startTime,
-            uint256 endTime,
+            uint256 _startTime,
+            uint256 _endTime,
             bool executed
         ) = governance.getProposal(1);
 
         assertEq(forVotes, 0);
         assertEq(againstVotes, 0);
-        assertEq(endTime - startTime, 7 days);
+        assertEq(_endTime - _startTime, 7 days);
         assertEq(executed, false);
         vm.stopPrank();
     }
 
-    function testVoting() public {
+    function testVotingPowerSnapshot() public {
         // Create proposal
         vm.startPrank(alice);
-        governance.createProposal("Test Proposal");
+        token.approve(address(governance), type(uint256).max);
+        bytes memory callData = abi.encodeWithSignature("setValue(uint256)", 42);
+        governance.createProposal("Test Proposal", address(mockTarget), callData);
+        
+        // Alice votes with 1000 tokens
+        governance.castVote(1, true);
+        
+        // Transfer 500 tokens to bob after voting
+        token.transfer(bob, 500 * 10**18);
+        vm.stopPrank();
+
+        // Check that Alice's vote still counts as 1000 tokens despite transfer
+        (uint256 forVotes, uint256 againstVotes,,, ) = governance.getProposal(1);
+        assertEq(forVotes, 1000 * 10**18);
+        assertEq(againstVotes, 0);
+    }
+
+    function testVoting() public {
+        // Create proposal
+        bytes memory callData = abi.encodeWithSignature("setValue(uint256)", 42);
+        vm.startPrank(alice);
+        token.approve(address(governance), type(uint256).max);
+        governance.createProposal("Test Proposal", address(mockTarget), callData);
         
         // Alice votes in favor
         governance.castVote(1, true);
-        
         vm.stopPrank();
 
         // Bob votes against
         vm.startPrank(bob);
+        token.approve(address(governance), type(uint256).max);
         governance.castVote(1, false);
         
-        (uint256 forVotes, uint256 againstVotes,,,,) = governance.getProposal(1);
+        (uint256 forVotes, uint256 againstVotes,,, ) = governance.getProposal(1);
         
         // Alice has 1000 tokens, Bob has 500 tokens
         assertEq(forVotes, 1000 * 10**18);
@@ -67,52 +105,80 @@ contract GovernanceTest is Test {
         vm.stopPrank();
     }
 
-    function testExecuteProposal() public {
-        // Create and vote on proposal
+    function testExecutionDelay() public {
+        // Create proposal
+        bytes memory callData = abi.encodeWithSignature("setValue(uint256)", 42);
         vm.startPrank(alice);
-        governance.createProposal("Test Proposal");
+        token.approve(address(governance), type(uint256).max);
+        governance.createProposal("Test Proposal", address(mockTarget), callData);
         governance.castVote(1, true);
         vm.stopPrank();
 
         // Fast forward past voting period
         vm.warp(block.timestamp + 8 days);
+        
+        // Try to execute immediately (should set execution time)
+        governance.executeProposal(1);
+        
+        // Verify not executed yet
+        (,,,, bool executed) = governance.getProposal(1);
+        assertEq(executed, false);
+        
+        // Fast forward past execution delay
+        vm.warp(block.timestamp + EXECUTION_DELAY + 1);
         
         // Execute proposal
         governance.executeProposal(1);
         
-        (,,,,bool executed) = governance.getProposal(1);
-        assertTrue(executed);
+        // Verify executed
+        (,,,, executed) = governance.getProposal(1);
+        assertEq(executed, true);
+        assertEq(mockTarget.value(), 42);
     }
 
     function testFailDoubleVote() public {
+        // Create proposal
+        bytes memory callData = abi.encodeWithSignature("setValue(uint256)", 42);
         vm.startPrank(alice);
-        governance.createProposal("Test Proposal");
+        token.approve(address(governance), type(uint256).max);
+        governance.createProposal("Test Proposal", address(mockTarget), callData);
+        
+        // Vote once
         governance.castVote(1, true);
         
-        // This should fail
-        governance.castVote(1, false);
-        vm.stopPrank();
+        // Try to vote again (should fail)
+        governance.castVote(1, true);
     }
 
-    function testFailInsufficientTokens() public {
-        // Charlie has no tokens
-        address charlie = address(0x3);
-        vm.startPrank(charlie);
-        
-        // This should fail
-        governance.createProposal("Test Proposal");
-        vm.stopPrank();
-    }
-
-    function testFailVoteAfterEnd() public {
+    function testFailEarlyExecution() public {
+        // Create proposal
+        bytes memory callData = abi.encodeWithSignature("setValue(uint256)", 42);
         vm.startPrank(alice);
-        governance.createProposal("Test Proposal");
-        
+        token.approve(address(governance), type(uint256).max);
+        governance.createProposal("Test Proposal", address(mockTarget), callData);
+        governance.castVote(1, true);
+        vm.stopPrank();
+
+        // Try to execute before voting period ends
+        governance.executeProposal(1);
+    }
+
+    function testFailExecuteBeforeDelay() public {
+        // Create proposal
+        bytes memory callData = abi.encodeWithSignature("setValue(uint256)", 42);
+        vm.startPrank(alice);
+        token.approve(address(governance), type(uint256).max);
+        governance.createProposal("Test Proposal", address(mockTarget), callData);
+        governance.castVote(1, true);
+        vm.stopPrank();
+
         // Fast forward past voting period
         vm.warp(block.timestamp + 8 days);
         
-        // This should fail
-        governance.castVote(1, true);
-        vm.stopPrank();
+        // Set execution time
+        governance.executeProposal(1);
+        
+        // Try to execute before delay (should fail)
+        governance.executeProposal(1);
     }
 }

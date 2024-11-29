@@ -27,7 +27,7 @@ contract SetupScript is Script {
 
         // 2. Setup initial funding round in QuadraticFunding
         QuadraticFunding qf = QuadraticFunding(quadraticFunding);
-        
+
         // Configure round parameters
         QuadraticFunding.RoundConfig memory config = QuadraticFunding.RoundConfig({
             startTime: block.timestamp,
@@ -48,13 +48,7 @@ contract SetupScript is Script {
         uint256[] memory votes = new uint256[](1);
         votes[0] = 10;
 
-        Project(project).createProject(
-            "Sample Project",
-            "A sample project description",
-            descriptions,
-            funding,
-            votes
-        );
+        Project(project).createProject("Sample Project", "A sample project description", descriptions, funding, votes);
         console2.log("Created sample project");
 
         // 4. Verify deployer as eligible participant

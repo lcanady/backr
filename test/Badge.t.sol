@@ -81,4 +81,50 @@ contract BadgeTest is Test {
         // Try to set benefit higher than 100%
         badge.updateBadgeBenefit(Badge.BadgeType.EARLY_SUPPORTER, 10001);
     }
+
+    function testUpdateGovernanceWeight() public {
+        uint256 newWeight = 3000; // 30x voting power
+        badge.updateGovernanceWeight(Badge.BadgeType.EARLY_SUPPORTER, newWeight);
+
+        // Award badge to alice
+        vm.startPrank(owner);
+        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER, "ipfs://badge/early-supporter");
+        vm.stopPrank();
+
+        // Base weight (1x) + new weight (30x)
+        assertEq(badge.getGovernanceWeight(alice), 100 + newWeight);
+    }
+
+    function testMultipleBadgeGovernanceWeights() public {
+        // Award multiple badges to alice
+        vm.startPrank(owner);
+        badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER, "ipfs://badge/early-supporter");
+        badge.awardBadge(alice, Badge.BadgeType.GOVERNANCE_ACTIVE, "ipfs://badge/governance-active");
+        vm.stopPrank();
+
+        // Calculate expected weight (base 1x + 10x + 20x)
+        uint256 expectedWeight = 100 + 1000 + 2000;
+        assertEq(badge.getGovernanceWeight(alice), expectedWeight);
+    }
+
+    function testTierBonusGovernanceWeight() public {
+        vm.startPrank(owner);
+        // Award POWER_BACKER badge to alice
+        badge.awardBadge(alice, Badge.BadgeType.POWER_BACKER, "ipfs://badge/power-backer");
+
+        // Record actions to reach SILVER tier
+        for (uint256 i = 0; i < 10; i++) {
+            badge.recordAction(alice, Badge.BadgeType.POWER_BACKER);
+        }
+        vm.stopPrank();
+
+        // Base weight (1x) + POWER_BACKER weight (5x) with SILVER tier bonus (25%)
+        // 100 + (500 * 125 / 100) = 100 + 625 = 725
+        assertEq(badge.getGovernanceWeight(alice), 725);
+    }
+
+    function testFailExcessiveGovernanceWeight() public {
+        // Try to set weight higher than 100x
+        badge.updateGovernanceWeight(Badge.BadgeType.EARLY_SUPPORTER, 10001);
+    }
 }

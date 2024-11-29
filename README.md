@@ -5,11 +5,15 @@ Backr is a decentralized platform built on Ethereum that enables transparent and
 ## Key Features
 
 ### 👤 Enhanced User Profiles
-- Verified profiles with trusted verification system
+- Verified profiles with multi-type verification system (KYC, Social, Professional)
 - Profile recovery mechanism with time-locked security
 - Reputation scoring system
 - Profile metadata standards for better interoperability
 - Username indexing for efficient querying
+- Social graph functionality with following/follower relationships
+- Skill-based endorsement system
+- Project portfolio showcase with featured items
+- IPFS-based verification proof storage
 
 ### 🎯 Milestone-Based Project Funding
 - Create projects with detailed milestones
@@ -31,13 +35,21 @@ Backr is a decentralized platform built on Ethereum that enables transparent and
 - Minimum liquidity requirements for stability
 
 ### 🏆 Achievement Badges
-- NFT-based recognition system
+- Dynamic NFT-based recognition system
 - Multiple badge types:
   - Early Supporter
   - Power Backer
   - Liquidity Provider
   - Governance Active
 - Stackable benefits up to 25%
+- **New Badge Marketplace Features**:
+  - Trade badges on the open market
+  - Dynamic pricing based on rarity and demand
+  - Secure escrow-based trading system
+  - Badge transfer restrictions for certain types
+  - Automated market maker for badge liquidity
+  - Badge bundling for bulk trades
+  - Achievement-locked badge minting
 
 ### 💫 Advanced Quadratic Funding
 - Fair fund distribution with matching pools
@@ -55,6 +67,11 @@ We've made significant progress in enhancing our platform's user experience:
 - **Project Templates**: Developed a flexible template management system supporting diverse project archetypes
 - **Team Management**: Created a robust delegation and collaboration framework with secure role-based access controls
 - **Dispute Resolution**: Designed a comprehensive arbitration system for handling various collaboration conflicts
+- **Profile Enhancements**: Launched major profile improvements including:
+  - Social networking with follow/unfollow capabilities
+  - Skill endorsements with detailed descriptions
+  - Project portfolio showcase with featured items
+  - Enhanced verification system with multiple verification types
 
 ## Upcoming User Experience Improvements
 

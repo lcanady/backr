@@ -66,10 +66,13 @@ contract PlatformTokenTest is Test {
         // Warp time forward by 1 year
         vm.warp(block.timestamp + 365 days);
 
+        // Calculate expected reward: (staked amount * rate * time) / (365 days * 100)
+        uint256 expectedReward = (500 * 10 ** 18 * 5 * 365 days) / (365 days * 100);
+
         // Unstake and check rewards
         token.unstake();
-        // Should receive original stake (500) plus 5% annual reward (25)
-        assertEq(token.balanceOf(user1), 1050 * 10 ** 18); // 500 + 500 + (500 * 5%) = 1050
+        // Should receive original stake plus calculated reward
+        assertEq(token.balanceOf(user1), (500 * 10 ** 18) + (500 * 10 ** 18) + expectedReward);
         assertEq(token.stakedBalance(user1), 0);
         vm.stopPrank();
     }

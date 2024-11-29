@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import "./PlatformToken.sol";
+import "./LiquidityIncentives.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -13,6 +14,7 @@ contract LiquidityPool is ReentrancyGuard, Pausable, Ownable {
     using SafeMath for uint256;
 
     PlatformToken public token;
+    LiquidityIncentives public incentives;
 
     // Fee denominator (1000 = 0.3% fee)
     uint256 public constant FEE_DENOMINATOR = 1000;
@@ -47,8 +49,9 @@ contract LiquidityPool is ReentrancyGuard, Pausable, Ownable {
     uint256 public maxSlippage = 1000;
 
     // Constructor now accepts minimum liquidity parameter
-    constructor(address _token, uint256 _minimumLiquidity) {
+    constructor(address _token, uint256 _minimumLiquidity, address _incentives) {
         token = PlatformToken(_token);
+        incentives = LiquidityIncentives(_incentives);
         MINIMUM_LIQUIDITY = _minimumLiquidity == 0 ? 1000 : _minimumLiquidity;
     }
 
@@ -63,42 +66,40 @@ contract LiquidityPool is ReentrancyGuard, Pausable, Ownable {
             liquidity = _sqrt(msg.value * _tokenAmount);
             if (liquidity <= MINIMUM_LIQUIDITY) revert InsufficientLiquidity();
 
-            // Transfer tokens first
             bool success = token.transferFrom(msg.sender, address(this), _tokenAmount);
             if (!success) revert TransferFailed();
 
-            // Mint MINIMUM_LIQUIDITY to address(this)
             _mint(address(this), MINIMUM_LIQUIDITY);
             liquidity -= MINIMUM_LIQUIDITY;
 
-            // Update reserves
             ethReserve = msg.value;
             tokenReserve = _tokenAmount;
             emit PoolStateChanged(ethReserve, tokenReserve);
         } else {
-            uint256 ethRatio = (msg.value * 1e18) / ethReserve;
-            uint256 tokenRatio = (_tokenAmount * 1e18) / tokenReserve;
+            uint256 ethOptimal = (msg.value * tokenReserve) / ethReserve;
+            uint256 tokenOptimal = (_tokenAmount * ethReserve) / tokenReserve;
 
-            // Check ratios match within 1% slippage
-            if (ethRatio > tokenRatio * 101 / 100 || tokenRatio > ethRatio * 101 / 100) {
-                revert UnbalancedLiquidityRatios();
+            if (ethOptimal > _tokenAmount) {
+                ethOptimal = _tokenAmount;
+                tokenOptimal = (ethOptimal * tokenReserve) / ethReserve;
+            } else {
+                tokenOptimal = msg.value;
             }
 
-            // Calculate liquidity tokens to mint
-            liquidity = (msg.value * totalLiquidity) / ethReserve;
-
-            // Transfer tokens
-            bool success = token.transferFrom(msg.sender, address(this), _tokenAmount);
+            bool success = token.transferFrom(msg.sender, address(this), tokenOptimal);
             if (!success) revert TransferFailed();
 
-            // Update reserves
+            liquidity = (tokenOptimal * totalLiquidity) / tokenReserve;
+
             ethReserve += msg.value;
-            tokenReserve += _tokenAmount;
+            tokenReserve += tokenOptimal;
             emit PoolStateChanged(ethReserve, tokenReserve);
         }
 
-        // Mint liquidity tokens to provider
         _mint(msg.sender, liquidity);
+
+        // Always update user tier after adding liquidity
+        incentives.updateUserTier(msg.sender, liquidityBalance[msg.sender]);
 
         emit LiquidityAdded(msg.sender, msg.value, _tokenAmount, liquidity);
     }
@@ -109,23 +110,22 @@ contract LiquidityPool is ReentrancyGuard, Pausable, Ownable {
         if (_liquidity == 0) revert InsufficientInputAmount();
         if (_liquidity > liquidityBalance[msg.sender]) revert InsufficientLiquidity();
 
-        // Calculate token amounts
         uint256 ethAmount = (_liquidity * ethReserve) / totalLiquidity;
         uint256 tokenAmount = (_liquidity * tokenReserve) / totalLiquidity;
 
-        // Update state first to prevent reentrancy
         _burn(msg.sender, _liquidity);
         ethReserve -= ethAmount;
         tokenReserve -= tokenAmount;
         emit PoolStateChanged(ethReserve, tokenReserve);
 
-        // Transfer tokens
         bool success = token.transfer(msg.sender, tokenAmount);
         if (!success) revert TransferFailed();
 
-        // Transfer ETH last
         (success,) = msg.sender.call{value: ethAmount}("");
         if (!success) revert TransferFailed();
+
+        // Always update user tier after removing liquidity
+        incentives.updateUserTier(msg.sender, liquidityBalance[msg.sender]);
 
         emit LiquidityRemoved(msg.sender, ethAmount, tokenAmount, _liquidity);
     }
@@ -161,29 +161,19 @@ contract LiquidityPool is ReentrancyGuard, Pausable, Ownable {
         if (ethReserve == 0 || tokenReserve == 0) revert InsufficientLiquidity();
 
         uint256 tokensOut = getOutputAmount(msg.value, ethReserve, tokenReserve);
-        if (tokensOut < _minTokens) revert InsufficientOutputAmount();
+        if (tokensOut < _minTokens) revert SlippageExceeded();
 
         // Store old reserves for k-value check
         uint256 oldEthReserve = ethReserve;
         uint256 oldTokenReserve = tokenReserve;
 
-        // Update reserves first using SafeMath
-        ethReserve = oldEthReserve.add(msg.value);
-        tokenReserve = oldTokenReserve.sub(tokensOut);
+        // Update reserves
+        ethReserve += msg.value;
+        tokenReserve -= tokensOut;
 
-        // Check slippage
-        uint256 expectedPrice = (oldTokenReserve * 1e18) / oldEthReserve;
-        uint256 executionPrice = (tokensOut * 1e18) / msg.value;
-        uint256 priceImpact = (
-            (expectedPrice > executionPrice)
-                ? ((expectedPrice - executionPrice) * 10000) / expectedPrice
-                : ((executionPrice - expectedPrice) * 10000) / expectedPrice
-        );
-        if (priceImpact > maxSlippage) revert SlippageExceeded();
-
-        // Verify k is maintained or increased using SafeMath
-        uint256 k = ethReserve.mul(tokenReserve);
-        uint256 previousK = oldEthReserve.mul(oldTokenReserve);
+        // Verify k is maintained or increased
+        uint256 k = ethReserve * tokenReserve;
+        uint256 previousK = oldEthReserve * oldTokenReserve;
         if (k < previousK) revert InvalidK();
 
         // Transfer tokens last to prevent reentrancy
@@ -201,41 +191,30 @@ contract LiquidityPool is ReentrancyGuard, Pausable, Ownable {
         if (ethReserve == 0 || tokenReserve == 0) revert InsufficientLiquidity();
 
         uint256 ethOut = getOutputAmount(_tokenAmount, tokenReserve, ethReserve);
-        if (ethOut < _minETH) revert InsufficientOutputAmount();
+        if (ethOut < _minETH) revert SlippageExceeded();
 
         // Store old reserves for k-value check
         uint256 oldEthReserve = ethReserve;
         uint256 oldTokenReserve = tokenReserve;
 
-        // Transfer tokens first to prevent reentrancy
+        // Update reserves
+        tokenReserve += _tokenAmount;
+        ethReserve -= ethOut;
+
+        // Verify k is maintained or increased
+        uint256 k = ethReserve * tokenReserve;
+        uint256 previousK = oldEthReserve * oldTokenReserve;
+        if (k < previousK) revert InvalidK();
+
+        // Transfer tokens first
         bool success = token.transferFrom(msg.sender, address(this), _tokenAmount);
         if (!success) revert TransferFailed();
 
-        // Update reserves using SafeMath
-        tokenReserve = oldTokenReserve.add(_tokenAmount);
-        ethReserve = oldEthReserve.sub(ethOut);
-
-        // Check slippage
-        uint256 expectedPrice = (oldEthReserve * 1e18) / oldTokenReserve;
-        uint256 executionPrice = (ethOut * 1e18) / _tokenAmount;
-        uint256 priceImpact = (
-            (expectedPrice > executionPrice)
-                ? ((expectedPrice - executionPrice) * 10000) / expectedPrice
-                : ((executionPrice - expectedPrice) * 10000) / expectedPrice
-        );
-        if (priceImpact > maxSlippage) revert SlippageExceeded();
-
-        // Verify k is maintained or increased using SafeMath
-        uint256 k = ethReserve.mul(tokenReserve);
-        uint256 previousK = oldEthReserve.mul(oldTokenReserve);
-        if (k < previousK) revert InvalidK();
-
-        // Transfer ETH last
+        // Transfer ETH last to prevent reentrancy
         (success,) = msg.sender.call{value: ethOut}("");
         if (!success) revert TransferFailed();
 
         emit TokensSold(msg.sender, _tokenAmount, ethOut);
-        emit PoolStateChanged(ethReserve, tokenReserve);
     }
 
     /// @notice Get current exchange rate
@@ -248,14 +227,15 @@ contract LiquidityPool is ReentrancyGuard, Pausable, Ownable {
 
     /// @notice Internal function to mint liquidity tokens
     function _mint(address _to, uint256 _amount) internal {
-        liquidityBalance[_to] = liquidityBalance[_to].add(_amount);
-        totalLiquidity = totalLiquidity.add(_amount);
+        liquidityBalance[_to] = liquidityBalance[_to] + _amount;
+        totalLiquidity = totalLiquidity + _amount;
     }
 
     /// @notice Internal function to burn liquidity tokens
     function _burn(address _from, uint256 _amount) internal {
-        liquidityBalance[_from] = liquidityBalance[_from].sub(_amount);
-        totalLiquidity = totalLiquidity.sub(_amount);
+        require(liquidityBalance[_from] >= _amount, "Insufficient liquidity balance");
+        liquidityBalance[_from] = liquidityBalance[_from] - _amount;
+        totalLiquidity = totalLiquidity - _amount;
     }
 
     /// @notice Calculate fee adjusted input amount
@@ -333,15 +313,17 @@ contract LiquidityPool is ReentrancyGuard, Pausable, Ownable {
         uint256 ethBalance = address(this).balance;
         uint256 tokenBalance = token.balanceOf(address(this));
 
-        if (ethBalance > 0) {
-            (bool success,) = msg.sender.call{value: ethBalance}("");
-            if (!success) revert EmergencyWithdrawalFailed();
-        }
+        // Reset reserves
+        ethReserve = 0;
+        tokenReserve = 0;
+        totalLiquidity = 0;
 
-        if (tokenBalance > 0) {
-            bool success = token.transfer(msg.sender, tokenBalance);
-            if (!success) revert EmergencyWithdrawalFailed();
-        }
+        // Transfer tokens and ETH to owner
+        bool success = token.transfer(msg.sender, tokenBalance);
+        if (!success) revert EmergencyWithdrawalFailed();
+
+        (success,) = msg.sender.call{value: ethBalance}("");
+        if (!success) revert EmergencyWithdrawalFailed();
 
         emit EmergencyWithdrawal(msg.sender, ethBalance, tokenBalance);
     }

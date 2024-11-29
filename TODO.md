@@ -74,18 +74,18 @@
 - [x] Enable profile verification improvements
 
 ### Liquidity Features
-- [ ] Add multiple pool tiers
-- [ ] Implement flash loan functionality
-- [ ] Create liquidity mining incentives
-- [ ] Add yield farming opportunities
+- [x] Add multiple pool tiers
+- [x] Implement flash loan functionality
+- [x] Create liquidity mining incentives
+- [x] Add yield farming opportunities
 
 ## Future Considerations
 
 ### Badge System
-- [ ] Create dynamic badge properties
-- [ ] Implement time-limited event badges
-- [ ] Add badge trading marketplace
-- [ ] Develop badge-based governance weight
+- [x] Create dynamic badge properties
+- [x] Implement time-limited event badges
+- [x] Add badge trading marketplace
+- [x] Develop badge-based governance weight
 
 ### Governance
 - [ ] Add delegation capabilities

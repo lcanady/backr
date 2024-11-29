@@ -41,6 +41,9 @@ contract Badge is ERC721URIStorage, Ownable {
     // Mapping from badge type to its benefits multiplier (in basis points, 100 = 1%)
     mapping(BadgeType => uint256) public badgeBenefits;
 
+    // Mapping from badge type to governance weight multiplier (in basis points)
+    mapping(BadgeType => uint256) public governanceWeights;
+
     // Mapping from badge type to tier requirements (e.g., number of actions needed)
     mapping(BadgeType => mapping(BadgeTier => uint256)) public tierRequirements;
 
@@ -51,6 +54,7 @@ contract Badge is ERC721URIStorage, Ownable {
     event BadgeRevoked(address indexed holder, uint256 tokenId);
     event BadgeProgressed(address indexed holder, uint256 tokenId, BadgeTier newTier);
     event BenefitUpdated(BadgeType badgeType, uint256 newBenefit);
+    event GovernanceWeightUpdated(BadgeType indexed badgeType, uint256 newWeight);
 
     constructor() ERC721("Platform Achievement Badge", "BADGE") Ownable() {
         _tokenIds = 0;
@@ -59,6 +63,12 @@ contract Badge is ERC721URIStorage, Ownable {
         badgeBenefits[BadgeType.POWER_BACKER] = 1000; // 10% discount
         badgeBenefits[BadgeType.LIQUIDITY_PROVIDER] = 1500; // 15% discount
         badgeBenefits[BadgeType.GOVERNANCE_ACTIVE] = 750; // 7.5% discount
+
+        // Set initial governance weights
+        governanceWeights[BadgeType.EARLY_SUPPORTER] = 1000; // 10x voting power
+        governanceWeights[BadgeType.POWER_BACKER] = 500; // 5x voting power
+        governanceWeights[BadgeType.LIQUIDITY_PROVIDER] = 750; // 7.5x voting power
+        governanceWeights[BadgeType.GOVERNANCE_ACTIVE] = 2000; // 20x voting power
 
         // Set tier requirements
         tierRequirements[BadgeType.POWER_BACKER][BadgeTier.BRONZE] = 5;
@@ -160,6 +170,17 @@ contract Badge is ERC721URIStorage, Ownable {
     }
 
     /**
+     * @dev Update the governance weight for a badge type
+     * @param badgeType Type of badge to update
+     * @param newWeight New weight value in basis points
+     */
+    function updateGovernanceWeight(BadgeType badgeType, uint256 newWeight) external onlyOwner {
+        require(newWeight <= 10000, "Weight cannot exceed 100x");
+        governanceWeights[badgeType] = newWeight;
+        emit GovernanceWeightUpdated(badgeType, newWeight);
+    }
+
+    /**
      * @dev Get the total discount percentage for an address (sum of all badge benefits)
      * @param user Address to check benefits for
      * @return Total benefit in basis points
@@ -179,6 +200,35 @@ contract Badge is ERC721URIStorage, Ownable {
     }
 
     /**
+     * @dev Get the total governance weight for an address
+     * @param user Address to check weights for
+     * @return Total governance weight in basis points
+     */
+    function getGovernanceWeight(address user) external view returns (uint256) {
+        uint256 totalWeight = 100; // Base weight of 1x
+
+        for (uint256 i = 0; i <= uint256(type(BadgeType).max); i++) {
+            BadgeType badgeType = BadgeType(i);
+            if (hasBadge[user][badgeType]) {
+                uint256 tokenId = getUserBadgeTokenId(user, badgeType);
+                uint256 multiplier = governanceWeights[badgeType];
+
+                // Apply tier bonuses
+                BadgeTier tier = badgeTiers[tokenId];
+                if (tier == BadgeTier.SILVER) multiplier = multiplier * 125 / 100; // 25% bonus
+
+                else if (tier == BadgeTier.GOLD) multiplier = multiplier * 150 / 100; // 50% bonus
+
+                else if (tier == BadgeTier.PLATINUM) multiplier = multiplier * 200 / 100; // 100% bonus
+
+                totalWeight += multiplier;
+            }
+        }
+
+        return totalWeight;
+    }
+
+    /**
      * @dev Check if an address has a specific badge
      * @param user Address to check
      * @param badgeType Type of badge to check for
@@ -186,5 +236,13 @@ contract Badge is ERC721URIStorage, Ownable {
      */
     function hasSpecificBadge(address user, BadgeType badgeType) external view returns (bool) {
         return hasBadge[user][badgeType];
+    }
+
+    /**
+     * @dev Get the total number of badges minted
+     * @return The total number of badges
+     */
+    function totalSupply() external view returns (uint256) {
+        return _tokenIds;
     }
 }

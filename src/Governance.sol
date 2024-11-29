@@ -29,24 +29,15 @@ contract Governance is Ownable, ReentrancyGuard {
     uint256 public proposalCount;
     uint256 public constant VOTING_PERIOD = 7 days;
     uint256 public constant EXECUTION_DELAY = 2 days;
-    uint256 public constant PROPOSAL_THRESHOLD = 100 * 10**18; // 100 tokens needed to create proposal
-    
+    uint256 public constant PROPOSAL_THRESHOLD = 100 * 10 ** 18; // 100 tokens needed to create proposal
+
     mapping(uint256 => Proposal) public proposals;
     mapping(uint256 => uint256) public proposalExecutionTime;
 
     event ProposalCreated(
-        uint256 indexed proposalId,
-        address indexed proposer,
-        string description,
-        uint256 startTime,
-        uint256 endTime
+        uint256 indexed proposalId, address indexed proposer, string description, uint256 startTime, uint256 endTime
     );
-    event VoteCast(
-        address indexed voter,
-        uint256 indexed proposalId,
-        bool support,
-        uint256 weight
-    );
+    event VoteCast(address indexed voter, uint256 indexed proposalId, bool support, uint256 weight);
     event ProposalExecuted(uint256 indexed proposalId);
 
     constructor(address _platformToken) Ownable() {
@@ -59,15 +50,8 @@ contract Governance is Ownable, ReentrancyGuard {
      * @param target Address of contract to call if proposal passes
      * @param callData Function call data to execute if proposal passes
      */
-    function createProposal(
-        string memory description,
-        address target,
-        bytes memory callData
-    ) external {
-        require(
-            platformToken.balanceOf(msg.sender) >= PROPOSAL_THRESHOLD,
-            "Insufficient tokens to create proposal"
-        );
+    function createProposal(string memory description, address target, bytes memory callData) external {
+        require(platformToken.balanceOf(msg.sender) >= PROPOSAL_THRESHOLD, "Insufficient tokens to create proposal");
         require(target != address(0), "Invalid target address");
 
         uint256 startTime = block.timestamp;
@@ -83,13 +67,7 @@ contract Governance is Ownable, ReentrancyGuard {
         newProposal.target = target;
         newProposal.callData = callData;
 
-        emit ProposalCreated(
-            proposalCount,
-            msg.sender,
-            description,
-            startTime,
-            endTime
-        );
+        emit ProposalCreated(proposalCount, msg.sender, description, startTime, endTime);
     }
 
     /**
@@ -111,7 +89,7 @@ contract Governance is Ownable, ReentrancyGuard {
         require(votes > 0, "No voting power");
 
         proposal.hasVoted[msg.sender] = true;
-        
+
         if (support) {
             proposal.forVotes += votes;
         } else {
@@ -130,19 +108,19 @@ contract Governance is Ownable, ReentrancyGuard {
         require(block.timestamp > proposal.endTime, "Voting period not ended");
         require(!proposal.executed, "Proposal already executed");
         require(proposal.forVotes > proposal.againstVotes, "Proposal rejected");
-        
+
         // Check execution delay
         if (proposalExecutionTime[proposalId] == 0) {
             proposalExecutionTime[proposalId] = block.timestamp + EXECUTION_DELAY;
             return;
         }
-        
+
         require(block.timestamp >= proposalExecutionTime[proposalId], "Execution delay not met");
 
         proposal.executed = true;
-        
+
         // Execute the proposal's action
-        (bool success, ) = proposal.target.call(proposal.callData);
+        (bool success,) = proposal.target.call(proposal.callData);
         require(success, "Proposal execution failed");
 
         emit ProposalExecuted(proposalId);
@@ -157,20 +135,12 @@ contract Governance is Ownable, ReentrancyGuard {
      * @return endTime End time of voting period
      * @return executed Whether the proposal has been executed
      */
-    function getProposal(uint256 proposalId) external view returns (
-        uint256 forVotes,
-        uint256 againstVotes,
-        uint256 startTime,
-        uint256 endTime,
-        bool executed
-    ) {
+    function getProposal(uint256 proposalId)
+        external
+        view
+        returns (uint256 forVotes, uint256 againstVotes, uint256 startTime, uint256 endTime, bool executed)
+    {
         Proposal storage proposal = proposals[proposalId];
-        return (
-            proposal.forVotes,
-            proposal.againstVotes,
-            proposal.startTime,
-            proposal.endTime,
-            proposal.executed
-        );
+        return (proposal.forVotes, proposal.againstVotes, proposal.startTime, proposal.endTime, proposal.executed);
     }
 }

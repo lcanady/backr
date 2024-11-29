@@ -20,14 +20,14 @@ contract BadgeTest is Test {
 
     function testAwardBadge() public {
         badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER);
-        
+
         assertTrue(badge.hasSpecificBadge(alice, Badge.BadgeType.EARLY_SUPPORTER));
         assertEq(badge.balanceOf(alice), 1);
     }
 
     function testFailDuplicateBadge() public {
         badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER);
-        
+
         // This should fail
         badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER);
     }
@@ -35,10 +35,10 @@ contract BadgeTest is Test {
     function testUpdateBadgeBenefit() public {
         uint256 newBenefit = 2000; // 20%
         badge.updateBadgeBenefit(Badge.BadgeType.EARLY_SUPPORTER, newBenefit);
-        
+
         // Award badge to alice
         badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER);
-        
+
         // Check total benefits
         assertEq(badge.getTotalBenefits(alice), newBenefit);
     }
@@ -47,10 +47,10 @@ contract BadgeTest is Test {
         // Award multiple badges to alice
         badge.awardBadge(alice, Badge.BadgeType.EARLY_SUPPORTER);
         badge.awardBadge(alice, Badge.BadgeType.POWER_BACKER);
-        
+
         // Calculate expected benefits (5% + 10% = 15%)
         uint256 expectedBenefit = 1500;
-        
+
         assertEq(badge.getTotalBenefits(alice), expectedBenefit);
     }
 
@@ -60,7 +60,7 @@ contract BadgeTest is Test {
         badge.awardBadge(alice, Badge.BadgeType.POWER_BACKER);
         badge.awardBadge(alice, Badge.BadgeType.LIQUIDITY_PROVIDER);
         badge.awardBadge(alice, Badge.BadgeType.GOVERNANCE_ACTIVE);
-        
+
         // Total would be 37.5%, but should be capped at 25%
         assertEq(badge.getTotalBenefits(alice), 2500);
     }

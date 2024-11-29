@@ -69,7 +69,7 @@ contract UserProfile {
     function updateReputation(address _user, uint256 _newScore) external {
         // TODO: Add access control to restrict this to authorized contracts
         if (!profiles[_user].isRegistered) revert ProfileDoesNotExist();
-        
+
         profiles[_user].reputationScore = _newScore;
         emit ReputationUpdated(_user, _newScore);
     }

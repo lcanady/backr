@@ -70,8 +70,8 @@ contract Project {
         if (!userProfile.hasProfile(msg.sender)) revert UserNotRegistered();
         if (bytes(_title).length == 0 || _milestoneDescriptions.length == 0) revert InvalidProjectParameters();
         if (
-            _milestoneDescriptions.length != _milestoneFunding.length ||
-            _milestoneFunding.length != _milestoneVotesRequired.length
+            _milestoneDescriptions.length != _milestoneFunding.length
+                || _milestoneFunding.length != _milestoneVotesRequired.length
         ) revert InvalidProjectParameters();
 
         uint256 projectId = totalProjects++;
@@ -140,11 +140,11 @@ contract Project {
     function _releaseFunds(uint256 _projectId, uint256 _milestoneId) internal {
         ProjectDetails storage project = projects[_projectId];
         Milestone storage milestone = project.milestones[_milestoneId];
-        
+
         uint256 amount = milestone.fundingRequired;
         if (address(this).balance < amount) revert InsufficientFunds();
 
-        (bool sent, ) = project.creator.call{value: amount}("");
+        (bool sent,) = project.creator.call{value: amount}("");
         require(sent, "Failed to send funds");
 
         emit FundsReleased(_projectId, _milestoneId, amount);
@@ -153,13 +153,17 @@ contract Project {
     /// @notice Get milestone details
     /// @param _projectId ID of the project
     /// @param _milestoneId ID of the milestone
-    function getMilestone(uint256 _projectId, uint256 _milestoneId) external view returns (
-        string memory description,
-        uint256 fundingRequired,
-        uint256 votesRequired,
-        uint256 votesReceived,
-        bool isCompleted
-    ) {
+    function getMilestone(uint256 _projectId, uint256 _milestoneId)
+        external
+        view
+        returns (
+            string memory description,
+            uint256 fundingRequired,
+            uint256 votesRequired,
+            uint256 votesReceived,
+            bool isCompleted
+        )
+    {
         if (!projects[_projectId].isActive) revert ProjectNotFound();
         if (_milestoneId >= projects[_projectId].milestoneCount) revert MilestoneNotFound();
 
@@ -177,7 +181,11 @@ contract Project {
     /// @param _projectId ID of the project
     /// @param _milestoneId ID of the milestone
     /// @param _voter Address to check
-    function hasVotedForMilestone(uint256 _projectId, uint256 _milestoneId, address _voter) external view returns (bool) {
+    function hasVotedForMilestone(uint256 _projectId, uint256 _milestoneId, address _voter)
+        external
+        view
+        returns (bool)
+    {
         return projects[_projectId].milestones[_milestoneId].hasVoted[_voter];
     }
 

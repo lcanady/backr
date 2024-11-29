@@ -18,7 +18,7 @@ contract UserProfileTest is Test {
     function test_CreateProfile() public {
         vm.startPrank(user1);
         userProfile.createProfile("alice", "Web3 developer");
-        
+
         UserProfile.Profile memory profile = userProfile.getProfile(user1);
         assertEq(profile.username, "alice");
         assertEq(profile.bio, "Web3 developer");
@@ -36,7 +36,7 @@ contract UserProfileTest is Test {
         vm.startPrank(user1);
         userProfile.createProfile("alice", "Web3 developer");
         userProfile.updateProfile("alice_updated", "Senior Web3 developer");
-        
+
         UserProfile.Profile memory profile = userProfile.getProfile(user1);
         assertEq(profile.username, "alice_updated");
         assertEq(profile.bio, "Senior Web3 developer");
@@ -49,7 +49,7 @@ contract UserProfileTest is Test {
 
     function test_HasProfile() public {
         assertFalse(userProfile.hasProfile(user1));
-        
+
         vm.startPrank(user1);
         userProfile.createProfile("alice", "Web3 developer");
         assertTrue(userProfile.hasProfile(user1));
@@ -57,11 +57,11 @@ contract UserProfileTest is Test {
 
     function test_TotalUsers() public {
         assertEq(userProfile.totalUsers(), 0);
-        
+
         vm.startPrank(user1);
         userProfile.createProfile("alice", "Web3 developer");
         assertEq(userProfile.totalUsers(), 1);
-        
+
         vm.startPrank(user2);
         userProfile.createProfile("bob", "Smart contract developer");
         assertEq(userProfile.totalUsers(), 2);

@@ -13,18 +13,19 @@ contract Badge is ERC721, Ownable {
 
     // Badge types and their requirements
     enum BadgeType {
-        EARLY_SUPPORTER,      // First 100 users to back a project
-        POWER_BACKER,         // Backed more than 5 projects
-        LIQUIDITY_PROVIDER,   // Provided significant liquidity
-        GOVERNANCE_ACTIVE     // Participated in multiple proposals
+        EARLY_SUPPORTER, // First 100 users to back a project
+        POWER_BACKER, // Backed more than 5 projects
+        LIQUIDITY_PROVIDER, // Provided significant liquidity
+        GOVERNANCE_ACTIVE // Participated in multiple proposals
+
     }
 
     // Mapping from token ID to badge type
     mapping(uint256 => BadgeType) public badgeTypes;
-    
+
     // Mapping from address to badge type to whether they have earned it
     mapping(address => mapping(BadgeType => bool)) public hasBadge;
-    
+
     // Mapping from badge type to its benefits multiplier (in basis points, 100 = 1%)
     mapping(BadgeType => uint256) public badgeBenefits;
 
@@ -34,10 +35,10 @@ contract Badge is ERC721, Ownable {
     constructor() ERC721("Platform Achievement Badge", "BADGE") Ownable() {
         _tokenIds = 0;
         // Set initial badge benefits
-        badgeBenefits[BadgeType.EARLY_SUPPORTER] = 500;     // 5% discount
-        badgeBenefits[BadgeType.POWER_BACKER] = 1000;       // 10% discount
+        badgeBenefits[BadgeType.EARLY_SUPPORTER] = 500; // 5% discount
+        badgeBenefits[BadgeType.POWER_BACKER] = 1000; // 10% discount
         badgeBenefits[BadgeType.LIQUIDITY_PROVIDER] = 1500; // 15% discount
-        badgeBenefits[BadgeType.GOVERNANCE_ACTIVE] = 750;   // 7.5% discount
+        badgeBenefits[BadgeType.GOVERNANCE_ACTIVE] = 750; // 7.5% discount
     }
 
     /**
@@ -50,7 +51,7 @@ contract Badge is ERC721, Ownable {
 
         _tokenIds++;
         uint256 newTokenId = _tokenIds;
-        
+
         _safeMint(recipient, newTokenId);
         badgeTypes[newTokenId] = badgeType;
         hasBadge[recipient][badgeType] = true;
@@ -76,14 +77,14 @@ contract Badge is ERC721, Ownable {
      */
     function getTotalBenefits(address user) external view returns (uint256) {
         uint256 totalBenefit = 0;
-        
-        for (uint i = 0; i <= uint(type(BadgeType).max); i++) {
+
+        for (uint256 i = 0; i <= uint256(type(BadgeType).max); i++) {
             BadgeType badgeType = BadgeType(i);
             if (hasBadge[user][badgeType]) {
                 totalBenefit += badgeBenefits[badgeType];
             }
         }
-        
+
         // Cap total benefit at 25%
         return totalBenefit > 2500 ? 2500 : totalBenefit;
     }

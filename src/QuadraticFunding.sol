@@ -26,7 +26,9 @@ contract QuadraticFunding {
 
     // Events
     event RoundStarted(uint256 indexed roundId, uint256 matchingPool);
-    event ContributionAdded(uint256 indexed roundId, uint256 indexed projectId, address indexed contributor, uint256 amount);
+    event ContributionAdded(
+        uint256 indexed roundId, uint256 indexed projectId, address indexed contributor, uint256 amount
+    );
     event RoundFinalized(uint256 indexed roundId, uint256 totalMatching);
     event MatchingFundsDistributed(uint256 indexed roundId, uint256 indexed projectId, uint256 amount);
 
@@ -99,20 +101,20 @@ contract QuadraticFunding {
             uint256 projectId = projectIds[i];
             uint256 sqrtContributions = _sqrt(round.projectContributions[projectId]);
             uint256 matchingAmount;
-            
+
             if (i == projectIds.length - 1) {
                 // Last project gets remaining funds to avoid rounding issues
                 matchingAmount = round.matchingPool - round.matchingAmount[projectIds[0]];
             } else {
                 matchingAmount = (round.matchingPool * sqrtContributions) / totalSquareRoots;
             }
-            
+
             round.matchingAmount[projectId] = matchingAmount;
-            
+
             // Transfer matching funds to project contract
             (bool sent,) = address(projectContract).call{value: matchingAmount}("");
             require(sent, "Failed to send matching funds");
-            
+
             emit MatchingFundsDistributed(roundId, projectId, matchingAmount);
         }
 
@@ -124,9 +126,7 @@ contract QuadraticFunding {
     function isRoundActive() public view returns (bool) {
         if (currentRound == 0) return false;
         Round storage round = rounds[currentRound - 1];
-        return block.timestamp >= round.startTime && 
-               block.timestamp <= round.endTime && 
-               !round.isFinalized;
+        return block.timestamp >= round.startTime && block.timestamp <= round.endTime && !round.isFinalized;
     }
 
     /// @notice Get the total contribution amount for a project in a round
@@ -147,7 +147,11 @@ contract QuadraticFunding {
     /// @param _roundId Round ID
     /// @param _projectId Project ID
     /// @param _contributor Contributor address
-    function getContribution(uint256 _roundId, uint256 _projectId, address _contributor) external view returns (uint256) {
+    function getContribution(uint256 _roundId, uint256 _projectId, address _contributor)
+        external
+        view
+        returns (uint256)
+    {
         return rounds[_roundId].contributions[_projectId][_contributor];
     }
 
@@ -155,15 +159,15 @@ contract QuadraticFunding {
     /// @param x Number to calculate square root of
     function _sqrt(uint256 x) internal pure returns (uint256) {
         if (x == 0) return 0;
-        
+
         uint256 z = (x + 1) / 2;
         uint256 y = x;
-        
+
         while (z < y) {
             y = z;
             z = (x / z + z) / 2;
         }
-        
+
         return y;
     }
 
@@ -172,14 +176,15 @@ contract QuadraticFunding {
     function _getProjectsInRound(uint256 _roundId) internal view returns (uint256[] memory) {
         Round storage round = rounds[_roundId];
         uint256 count = 0;
-        
+
         // First pass: count projects
-        for (uint256 i = 0; i < 1000; i++) { // Arbitrary limit for gas considerations
+        for (uint256 i = 0; i < 1000; i++) {
+            // Arbitrary limit for gas considerations
             if (round.projectContributions[i] > 0) {
                 count++;
             }
         }
-        
+
         // Second pass: collect project IDs
         uint256[] memory projects = new uint256[](count);
         uint256 index = 0;
@@ -189,7 +194,7 @@ contract QuadraticFunding {
                 index++;
             }
         }
-        
+
         return projects;
     }
 }

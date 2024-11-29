@@ -10,38 +10,38 @@ contract QuadraticFundingTest is Test {
     QuadraticFunding public qf;
     Project public project;
     UserProfile public userProfile;
-    
+
     address public admin;
     address public creator;
     address public contributor1;
     address public contributor2;
-    
+
     function setUp() public {
         admin = makeAddr("admin");
         creator = makeAddr("creator");
         contributor1 = makeAddr("contributor1");
         contributor2 = makeAddr("contributor2");
-        
+
         vm.startPrank(admin);
         // Deploy contracts
         userProfile = new UserProfile();
         project = new Project(address(userProfile));
         qf = new QuadraticFunding(payable(address(project)));
         vm.stopPrank();
-        
+
         // Create user profiles
         vm.startPrank(creator);
         userProfile.createProfile("creator", "Project Creator");
         vm.stopPrank();
-        
+
         vm.startPrank(contributor1);
         userProfile.createProfile("contributor1", "Contributor 1");
         vm.stopPrank();
-        
+
         vm.startPrank(contributor2);
         userProfile.createProfile("contributor2", "Contributor 2");
         vm.stopPrank();
-        
+
         // Create a test project
         string[] memory descriptions = new string[](1);
         descriptions[0] = "Milestone 1";
@@ -49,12 +49,12 @@ contract QuadraticFundingTest is Test {
         funding[0] = 1 ether;
         uint256[] memory votes = new uint256[](1);
         votes[0] = 2;
-        
+
         vm.startPrank(creator);
         project.createProject("Test Project", "Description", descriptions, funding, votes);
         vm.stopPrank();
     }
-    
+
     function test_StartRound() public {
         vm.deal(admin, 10 ether);
         vm.startPrank(admin);
@@ -62,7 +62,7 @@ contract QuadraticFundingTest is Test {
         assertTrue(qf.isRoundActive());
         vm.stopPrank();
     }
-    
+
     function testFail_StartRoundWithActiveRound() public {
         vm.deal(admin, 20 ether);
         vm.startPrank(admin);
@@ -70,72 +70,72 @@ contract QuadraticFundingTest is Test {
         qf.startRound{value: 10 ether}(); // Should fail
         vm.stopPrank();
     }
-    
+
     function test_Contribute() public {
         // Start round
         vm.deal(admin, 10 ether);
         vm.startPrank(admin);
         qf.startRound{value: 10 ether}();
         vm.stopPrank();
-        
+
         // Make contributions
         vm.deal(contributor1, 1 ether);
         vm.startPrank(contributor1);
         qf.contribute{value: 1 ether}(0);
         vm.stopPrank();
-        
+
         assertEq(qf.getProjectContributions(0, 0), 1 ether);
         assertEq(qf.getContribution(0, 0, contributor1), 1 ether);
     }
-    
+
     function test_FinalizeRound() public {
         // Start round
         vm.deal(admin, 10 ether);
         vm.startPrank(admin);
         qf.startRound{value: 10 ether}();
         vm.stopPrank();
-        
+
         // Make contributions
         vm.deal(contributor1, 4 ether);
         vm.startPrank(contributor1);
         qf.contribute{value: 4 ether}(0);
         vm.stopPrank();
-        
+
         vm.deal(contributor2, 1 ether);
         vm.startPrank(contributor2);
         qf.contribute{value: 1 ether}(1);
         vm.stopPrank();
-        
+
         // Warp time to end round
         vm.warp(block.timestamp + 15 days);
-        
+
         // Finalize round
         vm.startPrank(admin);
         qf.finalizeRound();
         vm.stopPrank();
-        
+
         // Check matching amounts
         uint256 project0Matching = qf.getMatchingAmount(0, 0);
         uint256 project1Matching = qf.getMatchingAmount(0, 1);
-        
+
         assertTrue(project0Matching > 0);
         assertTrue(project1Matching > 0);
         assertEq(project0Matching + project1Matching, 10 ether);
     }
-    
+
     function testFail_ContributeInactiveRound() public {
         vm.deal(contributor1, 1 ether);
         vm.startPrank(contributor1);
         qf.contribute{value: 1 ether}(0); // Should fail
         vm.stopPrank();
     }
-    
+
     function testFail_FinalizeActiveRound() public {
         // Start round
         vm.deal(admin, 10 ether);
         vm.startPrank(admin);
         qf.startRound{value: 10 ether}();
-        
+
         // Try to finalize before round ends
         qf.finalizeRound(); // Should fail
         vm.stopPrank();

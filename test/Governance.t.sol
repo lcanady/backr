@@ -8,7 +8,7 @@ import "../src/PlatformToken.sol";
 // Mock contract for testing proposal execution
 contract MockTarget {
     uint256 public value;
-    
+
     function setValue(uint256 _value) external {
         value = _value;
     }
@@ -35,8 +35,8 @@ contract GovernanceTest is Test {
 
         // Transfer some tokens for testing
         vm.startPrank(owner);
-        token.transfer(alice, 1000 * 10**18);
-        token.transfer(bob, 500 * 10**18);
+        token.transfer(alice, 1000 * 10 ** 18);
+        token.transfer(bob, 500 * 10 ** 18);
         vm.stopPrank();
     }
 
@@ -45,14 +45,9 @@ contract GovernanceTest is Test {
         token.approve(address(governance), type(uint256).max);
         bytes memory callData = abi.encodeWithSignature("setValue(uint256)", 42);
         governance.createProposal("Test Proposal", address(mockTarget), callData);
-        
-        (
-            uint256 forVotes,
-            uint256 againstVotes,
-            uint256 _startTime,
-            uint256 _endTime,
-            bool executed
-        ) = governance.getProposal(1);
+
+        (uint256 forVotes, uint256 againstVotes, uint256 _startTime, uint256 _endTime, bool executed) =
+            governance.getProposal(1);
 
         assertEq(forVotes, 0);
         assertEq(againstVotes, 0);
@@ -67,17 +62,17 @@ contract GovernanceTest is Test {
         token.approve(address(governance), type(uint256).max);
         bytes memory callData = abi.encodeWithSignature("setValue(uint256)", 42);
         governance.createProposal("Test Proposal", address(mockTarget), callData);
-        
+
         // Alice votes with 1000 tokens
         governance.castVote(1, true);
-        
+
         // Transfer 500 tokens to bob after voting
-        token.transfer(bob, 500 * 10**18);
+        token.transfer(bob, 500 * 10 ** 18);
         vm.stopPrank();
 
         // Check that Alice's vote still counts as 1000 tokens despite transfer
-        (uint256 forVotes, uint256 againstVotes,,, ) = governance.getProposal(1);
-        assertEq(forVotes, 1000 * 10**18);
+        (uint256 forVotes, uint256 againstVotes,,,) = governance.getProposal(1);
+        assertEq(forVotes, 1000 * 10 ** 18);
         assertEq(againstVotes, 0);
     }
 
@@ -87,7 +82,7 @@ contract GovernanceTest is Test {
         vm.startPrank(alice);
         token.approve(address(governance), type(uint256).max);
         governance.createProposal("Test Proposal", address(mockTarget), callData);
-        
+
         // Alice votes in favor
         governance.castVote(1, true);
         vm.stopPrank();
@@ -96,12 +91,12 @@ contract GovernanceTest is Test {
         vm.startPrank(bob);
         token.approve(address(governance), type(uint256).max);
         governance.castVote(1, false);
-        
-        (uint256 forVotes, uint256 againstVotes,,, ) = governance.getProposal(1);
-        
+
+        (uint256 forVotes, uint256 againstVotes,,,) = governance.getProposal(1);
+
         // Alice has 1000 tokens, Bob has 500 tokens
-        assertEq(forVotes, 1000 * 10**18);
-        assertEq(againstVotes, 500 * 10**18);
+        assertEq(forVotes, 1000 * 10 ** 18);
+        assertEq(againstVotes, 500 * 10 ** 18);
         vm.stopPrank();
     }
 
@@ -116,20 +111,20 @@ contract GovernanceTest is Test {
 
         // Fast forward past voting period
         vm.warp(block.timestamp + 8 days);
-        
+
         // Try to execute immediately (should set execution time)
         governance.executeProposal(1);
-        
+
         // Verify not executed yet
         (,,,, bool executed) = governance.getProposal(1);
         assertEq(executed, false);
-        
+
         // Fast forward past execution delay
         vm.warp(block.timestamp + EXECUTION_DELAY + 1);
-        
+
         // Execute proposal
         governance.executeProposal(1);
-        
+
         // Verify executed
         (,,,, executed) = governance.getProposal(1);
         assertEq(executed, true);
@@ -142,10 +137,10 @@ contract GovernanceTest is Test {
         vm.startPrank(alice);
         token.approve(address(governance), type(uint256).max);
         governance.createProposal("Test Proposal", address(mockTarget), callData);
-        
+
         // Vote once
         governance.castVote(1, true);
-        
+
         // Try to vote again (should fail)
         governance.castVote(1, true);
     }
@@ -174,10 +169,10 @@ contract GovernanceTest is Test {
 
         // Fast forward past voting period
         vm.warp(block.timestamp + 8 days);
-        
+
         // Set execution time
         governance.executeProposal(1);
-        
+
         // Try to execute before delay (should fail)
         governance.executeProposal(1);
     }

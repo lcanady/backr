@@ -235,15 +235,15 @@ contract UserProfileTest is Test {
     function test_DeployerRoleSetup() public {
         address deployer = makeAddr("deployer");
         vm.startPrank(deployer);
-        
+
         // Create a new UserProfile contract with deployer as the sender
         UserProfile newProfile = new UserProfile();
-        
+
         // Check that deployer has all roles
         assertTrue(newProfile.hasRole(newProfile.DEFAULT_ADMIN_ROLE(), deployer));
         assertTrue(newProfile.hasRole(newProfile.REPUTATION_MANAGER_ROLE(), deployer));
         assertTrue(newProfile.hasRole(newProfile.VERIFIER_ROLE(), deployer));
-        
+
         vm.stopPrank();
     }
 
@@ -251,7 +251,7 @@ contract UserProfileTest is Test {
         // Create profile
         vm.startPrank(user1);
         userProfile.createProfile("alice", "Web3 developer", "ipfs://metadata1");
-        
+
         // Set recovery address
         address recoveryAddr = makeAddr("recovery");
         userProfile.setRecoveryAddress(recoveryAddr);
@@ -277,17 +277,17 @@ contract UserProfileTest is Test {
         userProfile.createProfile("alice", "Web3 developer", "ipfs://metadata1");
 
         vm.startPrank(reputationManager);
-        
+
         // Test maximum reputation
         userProfile.updateReputation(user1, 1000);
         UserProfile.Profile memory profile = userProfile.getProfile(user1);
         assertEq(profile.reputationScore, 1000);
-        
+
         // Test minimum reputation
         userProfile.updateReputation(user1, 0);
         profile = userProfile.getProfile(user1);
         assertEq(profile.reputationScore, 0);
-        
+
         vm.stopPrank();
     }
 

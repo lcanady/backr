@@ -23,19 +23,15 @@ contract SetupScript is Script {
 
         // 1. Setup UserProfile
         UserProfile userProfileContract = UserProfile(userProfile);
-        
+
         // Create deployer's profile
-        userProfileContract.createProfile(
-            "Deployer",
-            "A sample deployer bio",
-            "IPFS://profile-metadata"
-        );
+        userProfileContract.createProfile("Deployer", "A sample deployer bio", "IPFS://profile-metadata");
         console2.log("Created profile for deployer:", deployer);
 
         // Grant roles
         bytes32 reputationManagerRole = userProfileContract.REPUTATION_MANAGER_ROLE();
         bytes32 verifierRole = userProfileContract.VERIFIER_ROLE();
-        
+
         userProfileContract.grantRole(reputationManagerRole, deployer);
         userProfileContract.grantRole(verifierRole, deployer);
         console2.log("Granted reputation manager and verifier roles to deployer");

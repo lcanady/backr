@@ -88,10 +88,10 @@
 - [x] Develop badge-based governance weight
 
 ### Governance
-- [ ] Add delegation capabilities
-- [ ] Implement gasless voting
-- [ ] Create specialized committees
-- [ ] Add proposal templates
+- [x] Add delegation capabilities
+- [x] Implement gasless voting
+- [x] Create specialized committees
+- [x] Add proposal templates
 
 ### Integration & Expansion
 - [ ] Add API endpoints

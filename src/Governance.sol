@@ -4,12 +4,13 @@ pragma solidity ^0.8.13;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "./GaslessVoting.sol";
 
 /**
  * @title Governance
  * @dev Contract for managing platform governance through a DAO structure
  */
-contract Governance is Ownable, ReentrancyGuard {
+contract Governance is Ownable, ReentrancyGuard, GaslessVoting {
     struct Proposal {
         uint256 id;
         address proposer;
@@ -172,24 +173,35 @@ contract Governance is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @dev Cast a vote on a proposal
-     * @param proposalId ID of the proposal
-     * @param support True for support, false for against
+     * @dev Cast a vote through meta-transaction
+     * @param permit Vote permit struct
+     * @param signature Signature bytes
      */
-    function castVote(uint256 proposalId, bool support) external nonReentrant {
+    function castVoteWithPermit(VotePermit memory permit, bytes memory signature) external {
+        _processVotePermit(permit, signature);
+        _castVote(permit.voter, permit.proposalId, permit.support);
+    }
+
+    /**
+     * @dev Internal function to cast a vote
+     * @param voter Address of the voter
+     * @param proposalId ID of the proposal
+     * @param support True for support, false against
+     */
+    function _castVote(address voter, uint256 proposalId, bool support) internal {
         Proposal storage proposal = proposals[proposalId];
         require(block.timestamp <= proposal.endTime, "Voting period ended");
-        require(!proposal.hasVoted[msg.sender], "Already voted");
+        require(!proposal.hasVoted[voter], "Already voted");
 
         // Take snapshot of voting power if not already taken
-        if (proposal.votingPowerSnapshot[msg.sender] == 0) {
-            proposal.votingPowerSnapshot[msg.sender] = getVotingPower(msg.sender);
+        if (proposal.votingPowerSnapshot[voter] == 0) {
+            proposal.votingPowerSnapshot[voter] = getVotingPower(voter);
         }
 
-        uint256 votes = proposal.votingPowerSnapshot[msg.sender];
+        uint256 votes = proposal.votingPowerSnapshot[voter];
         require(votes > 0, "No voting power");
 
-        proposal.hasVoted[msg.sender] = true;
+        proposal.hasVoted[voter] = true;
 
         if (support) {
             proposal.forVotes += votes;
@@ -197,7 +209,16 @@ contract Governance is Ownable, ReentrancyGuard {
             proposal.againstVotes += votes;
         }
 
-        emit VoteCast(msg.sender, proposalId, support, votes);
+        emit VoteCast(voter, proposalId, support, votes);
+    }
+
+    /**
+     * @dev Cast a vote on a proposal
+     * @param proposalId ID of the proposal
+     * @param support True for support, false for against
+     */
+    function castVote(uint256 proposalId, bool support) external nonReentrant {
+        _castVote(msg.sender, proposalId, support);
     }
 
     /**

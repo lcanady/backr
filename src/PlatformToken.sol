@@ -48,7 +48,6 @@ contract PlatformToken is ERC20, Ownable {
         require(block.timestamp >= stakeTimestamp[msg.sender] + MIN_STAKE_DURATION, "Minimum stake duration not met");
 
         uint256 reward = calculateReward(msg.sender);
-        uint256 total = stakedAmount + reward;
 
         stakedBalance[msg.sender] = 0;
         stakeTimestamp[msg.sender] = 0;

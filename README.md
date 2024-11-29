@@ -58,6 +58,20 @@ Backr is a decentralized platform built on Ethereum that enables transparent and
 - `QuadraticFunding.sol`: Implementation of quadratic funding mechanism
 - `PlatformToken.sol`: BACKR token with staking capabilities
 - `UserProfile.sol`: User reputation and profile management
+- `SecurityControls.sol`: Advanced security mechanisms with emergency management
+
+#### Security Controls Overview
+
+The `SecurityControls` contract provides a comprehensive security framework with multiple layers of protection:
+
+- **Rate Limiting**: Prevents excessive contract interactions by configuring call limits within specific time windows.
+- **Multi-Signature Approvals**: Requires multiple authorized parties to approve critical operations, reducing single-point-of-failure risks.
+- **Emergency Management**:
+  - Allows authorized emergency roles to pause the entire contract ecosystem
+  - Supports multiple emergency triggers without cooldown restrictions
+  - Provides flexible circuit breaker mechanisms to halt all contract interactions
+  - Comprehensive logging for all emergency-related actions
+  - Configurable cooldown periods for fine-tuned emergency response
 
 ### Security Features
 - Reentrancy guards
@@ -65,6 +79,12 @@ Backr is a decentralized platform built on Ethereum that enables transparent and
 - Access control mechanisms
 - Minimum liquidity requirements
 - Pausable functionality
+- **Enhanced Emergency Controls**
+  - Multiple emergency trigger capabilities
+  - Flexible circuit breaker mechanism
+  - Configurable emergency cooldown periods
+  - Role-based emergency management
+  - Comprehensive event logging for emergency actions
 
 ## Development
 

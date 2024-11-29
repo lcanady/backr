@@ -2,10 +2,11 @@
 pragma solidity ^0.8.13;
 
 import "./UserProfile.sol";
+import "./SecurityControls.sol";
 
 /// @title Project Contract for Backr Platform
 /// @notice Manages project creation, funding, and milestone tracking
-contract Project {
+contract Project is SecurityControls {
     // Structs
     struct Milestone {
         string description;
@@ -33,6 +34,14 @@ contract Project {
     mapping(uint256 => ProjectDetails) public projects;
     uint256 public totalProjects;
 
+    // Operation identifiers for rate limiting and multi-sig
+    bytes32 public constant CREATE_PROJECT_OPERATION = keccak256("CREATE_PROJECT");
+    bytes32 public constant LARGE_FUNDING_OPERATION = keccak256("LARGE_FUNDING");
+    bytes32 public constant MILESTONE_COMPLETION_OPERATION = keccak256("MILESTONE_COMPLETION");
+
+    // Funding thresholds
+    uint256 public constant LARGE_FUNDING_THRESHOLD = 10 ether;
+
     // Events
     event ProjectCreated(uint256 indexed projectId, address indexed creator, string title);
     event MilestoneAdded(uint256 indexed projectId, uint256 milestoneId, string description);
@@ -50,8 +59,23 @@ contract Project {
     error MilestoneAlreadyCompleted();
     error InsufficientVotes();
 
-    constructor(address _userProfileAddress) {
+    constructor(address _userProfileAddress) SecurityControls() {
         userProfile = UserProfile(_userProfileAddress);
+
+        // Grant the deployer the DEFAULT_ADMIN_ROLE
+        _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+
+        // Configure rate limits
+        _configureRateLimit(CREATE_PROJECT_OPERATION, 1, 24 hours); // 1 project per 24 hours
+        _configureRateLimit(MILESTONE_COMPLETION_OPERATION, 10, 1 days); // 10 milestone completions per day
+
+        // Initialize emergency settings
+        emergencyConfig.cooldownPeriod = 12 hours;
+
+        // Setup default multi-sig configuration for large funding
+        address[] memory defaultApprovers = new address[](1);
+        defaultApprovers[0] = msg.sender;
+        configureMultiSig(LARGE_FUNDING_OPERATION, 1, defaultApprovers);
     }
 
     /// @notice Creates a new project with initial milestones
@@ -61,12 +85,12 @@ contract Project {
     /// @param _milestoneFunding Array of funding requirements for each milestone
     /// @param _milestoneVotesRequired Array of required votes for each milestone
     function createProject(
-        string memory _title,
-        string memory _description,
-        string[] memory _milestoneDescriptions,
-        uint256[] memory _milestoneFunding,
-        uint256[] memory _milestoneVotesRequired
-    ) external {
+        string calldata _title,
+        string calldata _description,
+        string[] calldata _milestoneDescriptions,
+        uint256[] calldata _milestoneFunding,
+        uint256[] calldata _milestoneVotesRequired
+    ) external whenNotPaused rateLimitGuard(CREATE_PROJECT_OPERATION) {
         if (!userProfile.hasProfile(msg.sender)) revert UserNotRegistered();
         if (bytes(_title).length == 0 || _milestoneDescriptions.length == 0) revert InvalidProjectParameters();
         if (
@@ -100,11 +124,23 @@ contract Project {
         }
     }
 
-    /// @notice Contribute funds to a project
-    /// @param _projectId ID of the project
-    function contributeToProject(uint256 _projectId) external payable {
+    /// @notice Contributes funds to a project
+    function contributeToProject(uint256 _projectId)
+        external
+        payable
+        whenNotPaused
+        whenCircuitBreakerOff
+        nonReentrant
+    {
         if (!projects[_projectId].isActive) revert ProjectNotFound();
         if (msg.value == 0) revert InsufficientFunds();
+
+        // For large funding amounts, require multi-sig approval
+        if (msg.value >= LARGE_FUNDING_THRESHOLD) {
+            bytes32 txHash = keccak256(abi.encodePacked(_projectId, msg.sender, msg.value, block.timestamp));
+            MultiSigConfig storage config = multiSigConfigs[LARGE_FUNDING_OPERATION];
+            require(config.executed[txHash], "Requires multi-sig approval");
+        }
 
         ProjectDetails storage project = projects[_projectId];
         project.currentFunding += msg.value;
@@ -115,7 +151,7 @@ contract Project {
     /// @notice Vote for milestone completion
     /// @param _projectId ID of the project
     /// @param _milestoneId ID of the milestone
-    function voteMilestone(uint256 _projectId, uint256 _milestoneId) external {
+    function voteMilestone(uint256 _projectId, uint256 _milestoneId) external whenNotPaused whenCircuitBreakerOff {
         ProjectDetails storage project = projects[_projectId];
         if (!project.isActive) revert ProjectNotFound();
         if (_milestoneId >= project.milestoneCount) revert MilestoneNotFound();
@@ -156,6 +192,8 @@ contract Project {
     function getMilestone(uint256 _projectId, uint256 _milestoneId)
         external
         view
+        whenNotPaused
+        whenCircuitBreakerOff
         returns (
             string memory description,
             uint256 fundingRequired,
@@ -184,9 +222,24 @@ contract Project {
     function hasVotedForMilestone(uint256 _projectId, uint256 _milestoneId, address _voter)
         external
         view
+        whenNotPaused
+        whenCircuitBreakerOff
         returns (bool)
     {
         return projects[_projectId].milestones[_milestoneId].hasVoted[_voter];
+    }
+
+    /// @notice Emergency withdrawal of funds
+    function emergencyWithdraw(uint256 _projectId) external onlyRole(EMERGENCY_ROLE) whenPaused {
+        ProjectDetails storage project = projects[_projectId];
+        if (!project.isActive) revert ProjectNotFound();
+
+        uint256 amount = project.currentFunding;
+        project.currentFunding = 0;
+        project.isActive = false;
+
+        (bool success,) = project.creator.call{value: amount}("");
+        require(success, "Transfer failed");
     }
 
     /// @notice Receive function to accept ETH payments

@@ -396,7 +396,7 @@ contract LiquidityPoolTest is Test {
 
     function test_SlippageProtection() public {
         // Add initial liquidity
-        (uint256 initialEthReserve, uint256 initialTokenReserve) = _addInitialLiquidity();
+        _addInitialLiquidity();
 
         // Try to make a large swap that would exceed slippage
         vm.startPrank(user1);
@@ -429,7 +429,7 @@ contract LiquidityPoolTest is Test {
 
     function test_EmergencyWithdrawal() public {
         // Add initial liquidity
-        (uint256 initialEthReserve, uint256 initialTokenReserve) = _addInitialLiquidity();
+        _addInitialLiquidity();
 
         // Try emergency withdrawal without being owner
         vm.startPrank(user1);
@@ -455,8 +455,8 @@ contract LiquidityPoolTest is Test {
         // Verify balances
         assertEq(address(pool).balance, 0, "Pool should have 0 ETH after emergency withdrawal");
         assertEq(token.balanceOf(address(pool)), 0, "Pool should have 0 tokens after emergency withdrawal");
-        assertEq(owner.balance - ownerEthBefore, initialEthReserve, "Owner should receive all ETH");
-        assertEq(token.balanceOf(owner) - ownerTokensBefore, initialTokenReserve, "Owner should receive all tokens");
+        assertEq(owner.balance - ownerEthBefore, pool.ethReserve(), "Owner should receive all ETH");
+        assertEq(token.balanceOf(owner) - ownerTokensBefore, pool.tokenReserve(), "Owner should receive all tokens");
 
         vm.stopPrank();
     }

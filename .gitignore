@@ -12,4 +12,7 @@ docs/
 
 # Dotenv file
 .env
+.gas-report
+.gas-snapshot
+
 instructions 

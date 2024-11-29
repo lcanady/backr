@@ -4,18 +4,29 @@ Backr is a decentralized platform built on Ethereum that enables transparent and
 
 ## Key Features
 
+### 👤 Enhanced User Profiles
+- Verified profiles with trusted verification system
+- Profile recovery mechanism with time-locked security
+- Reputation scoring system
+- Profile metadata standards for better interoperability
+- Username indexing for efficient querying
+
 ### 🎯 Milestone-Based Project Funding
 - Create projects with detailed milestones
 - Secure fund release through community voting
 - Transparent progress tracking
+- Project analytics and reporting
 
 ### 🏛 Decentralized Governance
 - Community-driven decision making
 - Proposal creation and voting system
 - Time-locked execution for security
+- Multi-role access control system
 
 ### 💧 Liquidity Pool
 - Automated Market Maker (AMM) for ETH/BACKR trading
+- Advanced slippage protection
+- Emergency withdrawal mechanisms
 - Low 0.3% fee structure
 - Minimum liquidity requirements for stability
 
@@ -28,10 +39,13 @@ Backr is a decentralized platform built on Ethereum that enables transparent and
   - Governance Active
 - Stackable benefits up to 25%
 
-### 💫 Quadratic Funding
-- Fair fund distribution
-- Matching pool for contributions
-- Round-based funding cycles
+### 💫 Advanced Quadratic Funding
+- Fair fund distribution with matching pools
+- Round-based funding cycles with configurable parameters
+- Eligibility verification for participants
+- Comprehensive round analytics
+- Minimum and maximum contribution limits
+- Anti-sybil mechanisms
 
 ## Architecture
 
@@ -59,120 +73,110 @@ Backr is a decentralized platform built on Ethereum that enables transparent and
 - Solidity ^0.8.13
 - OpenZeppelin Contracts
 - [Foundry](https://book.getfoundry.sh/) - Development Framework
+- Ethereum Development Environment
+  - Local: Anvil (Foundry's built-in local testnet)
+  - Testnet: Sepolia
+  - Mainnet: Ethereum
 
 ### Prerequisites
 
 - [Foundry toolkit](https://book.getfoundry.sh/getting-started/installation)
-- Node.js and npm
+- Node.js and npm (for additional tooling)
 - Git
+- An Ethereum wallet with testnet ETH (for testnet deployment)
+- RPC URLs for your desired networks (local, testnet, or mainnet)
 
-### Local Setup
+### Project Structure
 
-1. Clone the repository
-```shell
-git clone https://github.com/yourusername/backr.git
-cd backr
+```
+backr/
+├── src/                    # Smart contract source files
+│   ├── PlatformToken.sol   # BACKR token implementation
+│   ├── UserProfile.sol     # User profile management
+│   ├── Project.sol         # Project and milestone management
+│   └── QuadraticFunding.sol# Quadratic funding implementation
+├── script/                 # Deployment and interaction scripts
+│   └── Deploy.s.sol        # Main deployment script
+├── test/                   # Test files
+├── lib/                    # Dependencies
+├── .env                    # Environment variables (git-ignored)
+└── foundry.toml           # Foundry configuration
 ```
 
-2. Install dependencies
-```shell
-forge install
-```
+### Development Workflow
 
-3. Build the project
-```shell
-forge build
-```
+1. **Local Development**
+   ```shell
+   # Start a local Ethereum node
+   anvil
 
-4. Run tests
-```shell
-forge test
-```
+   # In a new terminal, deploy to local network
+   forge script script/Deploy.s.sol:DeployScript --rpc-url http://localhost:8545 --private-key <PRIVATE_KEY> --broadcast
+   ```
 
-5. Format code
-```shell
-forge fmt
-```
+2. **Testing**
+   ```shell
+   # Run all tests
+   forge test
+   
+   # Run specific test file
+   forge test --match-path test/Project.t.sol
+   
+   # Run tests with verbosity
+   forge test -vvv
+   
+   # Run tests and show gas report
+   forge test --gas-report
+   ```
 
-6. Check gas usage
-```shell
-forge snapshot
-```
+3. **Code Quality**
+   ```shell
+   # Format code
+   forge fmt
+   
+   # Check gas usage
+   forge snapshot
+   
+   # Run static analysis (if slither is installed)
+   slither .
+   ```
 
-### Local Development
+4. **Contract Verification**
+   ```shell
+   # Verify on Etherscan (after deployment)
+   forge verify-contract <DEPLOYED_ADDRESS> src/Contract.sol:Contract --chain-id <CHAIN_ID> --api-key $ETHERSCAN_API_KEY
+   ```
 
-1. Start local node
-```shell
-anvil
-```
+### Common Tasks
 
-2. Deploy Protocol Contracts
+1. **Compile Contracts**
+   ```shell
+   forge build
+   ```
 
-The deployment order matters due to contract dependencies. Use the following commands:
+2. **Clean Build Files**
+   ```shell
+   forge clean
+   ```
 
-```shell
-# Deploy UserProfile contract first
-forge script script/deploy/DeployUserProfile.s.sol:DeployUserProfile --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+3. **Update Dependencies**
+   ```shell
+   forge update
+   ```
 
-# Deploy PlatformToken
-forge script script/deploy/DeployPlatformToken.s.sol:DeployPlatformToken --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+4. **Generate Gas Report**
+   ```shell
+   forge test --gas-report > gas-report.txt
+   ```
 
-# Deploy Badge system (requires PlatformToken address)
-forge script script/deploy/DeployBadge.s.sol:DeployBadge --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+### Best Practices
 
-# Deploy Governance (requires PlatformToken address)
-forge script script/deploy/DeployGovernance.s.sol:DeployGovernance --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
-
-# Deploy LiquidityPool (requires PlatformToken address)
-forge script script/deploy/DeployLiquidityPool.s.sol:DeployLiquidityPool --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
-
-# Deploy Project contract (requires UserProfile address)
-forge script script/deploy/DeployProject.s.sol:DeployProject --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
-
-# Deploy QuadraticFunding (requires Project contract address)
-forge script script/deploy/DeployQuadraticFunding.s.sol:DeployQuadraticFunding --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
-```
-
-For testnet or mainnet deployment, replace `http://localhost:8545` with your network RPC URL.
-
-3. Verify Contracts (for public networks)
-```shell
-forge verify-contract --chain-id <CHAIN_ID> \
-    --compiler-version <COMPILER_VERSION> \
-    <CONTRACT_ADDRESS> \
-    <CONTRACT_NAME> \
-    <ETHERSCAN_API_KEY>
-```
-
-4. Initialize Protocol
-
-After deployment, the following initialization steps are required:
-
-```shell
-# Initialize LiquidityPool with initial liquidity
-cast send --private-key $PRIVATE_KEY <LIQUIDITY_POOL_ADDRESS> \
-    "addLiquidity(uint256)" \
-    <TOKEN_AMOUNT> \
-    --value <ETH_AMOUNT>
-
-# Set up initial governance parameters
-cast send --private-key $PRIVATE_KEY <GOVERNANCE_ADDRESS> \
-    "initialize()" 
-
-# Initialize QuadraticFunding with first round
-cast send --private-key $PRIVATE_KEY <QUADRATIC_FUNDING_ADDRESS> \
-    "startRound()" \
-    --value <MATCHING_POOL_AMOUNT>
-```
-
-### Additional Commands
-
-For more detailed information about available commands:
-```shell
-forge --help
-anvil --help
-cast --help
-```
+1. Always run tests before deploying
+2. Keep your private keys and API keys secure
+3. Use the gas reporter to optimize expensive functions
+4. Verify contracts after deployment for transparency
+5. Document any deployed contract addresses
+6. Test on testnet before mainnet deployment
 
 ## Contributing
 

@@ -68,10 +68,10 @@
 - [ ] Create backer engagement metrics
 
 ### Profile Enhancements
-- [ ] Add social graph functionality
-- [ ] Implement endorsement system
-- [ ] Create project portfolio showcase
-- [ ] Enable profile verification improvements
+- [x] Add social graph functionality
+- [x] Implement endorsement system
+- [x] Create project portfolio showcase
+- [x] Enable profile verification improvements
 
 ### Liquidity Features
 - [ ] Add multiple pool tiers

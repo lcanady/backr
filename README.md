@@ -20,125 +20,52 @@ Backr is a decentralized platform built on Ethereum that enables transparent and
 - Secure fund release through community voting
 - Transparent progress tracking
 - Project analytics and reporting
+- Template-based project creation
+- Multi-category project organization
 
-### 🏛 Decentralized Governance
-- Community-driven decision making
-- Proposal creation and voting system
+### 🏛 Advanced Governance System
+- Community-driven decision making through multiple mechanisms:
+  - Standard proposal voting
+  - Committee-based governance for specialized decisions
+  - Gasless voting for improved accessibility
 - Time-locked execution for security
 - Multi-role access control system
+- Proposal templates for standardized governance
+- Delegation capabilities with granular controls
 
-### 💧 Liquidity Pool
+### 💧 Liquidity Management
 - Automated Market Maker (AMM) for ETH/BACKR trading
 - Advanced slippage protection
 - Emergency withdrawal mechanisms
+- Liquidity incentives program
 - Low 0.3% fee structure
 - Minimum liquidity requirements for stability
 
-### 🏆 Achievement Badges
+### 🏆 Achievement System
 - Dynamic NFT-based recognition system
-- Multiple badge types:
-  - Early Supporter
-  - Power Backer
-  - Liquidity Provider
-  - Governance Active
-- Stackable benefits up to 25%
-- **New Badge Marketplace Features**:
+- Multiple badge types with unique benefits
+- Badge Marketplace features:
   - Trade badges on the open market
-  - Dynamic pricing based on rarity and demand
-  - Secure escrow-based trading system
-  - Badge transfer restrictions for certain types
-  - Automated market maker for badge liquidity
-  - Badge bundling for bulk trades
-  - Achievement-locked badge minting
+  - Dynamic pricing based on rarity
+  - Secure escrow-based trading
+  - Achievement-locked minting
+  - Badge bundling capabilities
 
 ### 💫 Advanced Quadratic Funding
 - Fair fund distribution with matching pools
-- Round-based funding cycles with configurable parameters
-- Eligibility verification for participants
-- Comprehensive round analytics
-- Minimum and maximum contribution limits
+- Round-based funding cycles
+- Eligibility verification
+- Comprehensive analytics
 - Anti-sybil mechanisms
+- Configurable contribution limits
 
-### 🚀 Recent Achievements
-
-We've made significant progress in enhancing our platform's user experience:
-
-- **Project Discovery**: Implemented advanced project categorization with a sophisticated tagging system and multi-tag filtering
-- **Project Templates**: Developed a flexible template management system supporting diverse project archetypes
-- **Team Management**: Created a robust delegation and collaboration framework with secure role-based access controls
-- **Dispute Resolution**: Designed a comprehensive arbitration system for handling various collaboration conflicts
-- **Profile Enhancements**: Launched major profile improvements including:
-  - Social networking with follow/unfollow capabilities
-  - Skill endorsements with detailed descriptions
-  - Project portfolio showcase with featured items
-  - Enhanced verification system with multiple verification types
-
-## Upcoming User Experience Improvements
-
-### Project Discovery
-- **Categories and Tags**: We're introducing a comprehensive tagging system to help users easily discover and filter projects that match their interests.
-  - Categorize projects by domain (e.g., Tech, Art, Social Impact)
-  - Add custom tags for more granular project classification
-  - Implement advanced search and filtering capabilities
-
-### Project Management
-- **Project Templates**: Streamline project creation with pre-defined templates
-  - Standard templates for different project types
-  - Customizable template options
-  - One-click project initialization
-
-### Collaboration and Governance
-- **Team Management**
-  - Profile delegation for seamless team collaboration
-  - Granular permission controls
-  - Easy team member invitation and management
-
-### Dispute Resolution
-- **Fair and Transparent Conflict Management**
-  - Structured dispute resolution process
-  - Neutral arbitration mechanisms
-  - Clear guidelines and transparent tracking
-
-*Stay tuned for these exciting updates that will enhance your Backr experience!*
-
-## Architecture
-
-### Smart Contracts
-
-- `Project.sol`: Core contract managing project creation and milestone tracking
-- `Governance.sol`: DAO functionality for platform governance
-- `LiquidityPool.sol`: AMM implementation for token liquidity
-- `Badge.sol`: NFT-based achievement system
-- `QuadraticFunding.sol`: Implementation of quadratic funding mechanism
-- `PlatformToken.sol`: BACKR token with staking capabilities
-- `UserProfile.sol`: User reputation and profile management
-- `SecurityControls.sol`: Advanced security mechanisms with emergency management
-
-#### Security Controls Overview
-
-The `SecurityControls` contract provides a comprehensive security framework with multiple layers of protection:
-
-- **Rate Limiting**: Prevents excessive contract interactions by configuring call limits within specific time windows.
-- **Multi-Signature Approvals**: Requires multiple authorized parties to approve critical operations, reducing single-point-of-failure risks.
-- **Emergency Management**:
-  - Allows authorized emergency roles to pause the entire contract ecosystem
-  - Supports multiple emergency triggers without cooldown restrictions
-  - Provides flexible circuit breaker mechanisms to halt all contract interactions
-  - Comprehensive logging for all emergency-related actions
-  - Configurable cooldown periods for fine-tuned emergency response
-
-### Security Features
-- Reentrancy guards
-- Time-locked execution
-- Access control mechanisms
-- Minimum liquidity requirements
-- Pausable functionality
-- **Enhanced Emergency Controls**
-  - Multiple emergency trigger capabilities
-  - Flexible circuit breaker mechanism
-  - Configurable emergency cooldown periods
-  - Role-based emergency management
-  - Comprehensive event logging for emergency actions
+### 🤝 Team and Project Management
+- Comprehensive team management system
+- Role-based access controls
+- Project portfolio management
+- Dispute resolution framework
+- Project categorization and discovery
+- Template-based workflows
 
 ## Development
 
@@ -148,220 +75,123 @@ The `SecurityControls` contract provides a comprehensive security framework with
 - OpenZeppelin Contracts
 - [Foundry](https://book.getfoundry.sh/) - Development Framework
 - Ethereum Development Environment
-  - Local: Anvil (Foundry's built-in local testnet)
+  - Local: Anvil
   - Testnet: Sepolia
   - Mainnet: Ethereum
 
 ### Prerequisites
 
 - [Foundry toolkit](https://book.getfoundry.sh/getting-started/installation)
-- Node.js and npm (for additional tooling)
+- Node.js and npm
 - Git
-- An Ethereum wallet with testnet ETH (for testnet deployment)
-- RPC URLs for your desired networks (local, testnet, or mainnet)
+- Ethereum wallet with testnet ETH
+- Network RPC URLs
+
+### Configuration
+
+The project uses Foundry with optimized settings:
+- IR-based compilation enabled
+- Optimizer enabled with 200 runs
+- OpenZeppelin contract remappings configured
 
 ### Project Structure
 
 ```
 backr/
 ├── src/                    # Smart contract source files
-│   ├── PlatformToken.sol   # BACKR token implementation
-│   ├── UserProfile.sol     # User profile management
-│   ├── Project.sol         # Project and milestone management
-│   └── QuadraticFunding.sol# Quadratic funding implementation
-├── script/                 # Deployment and interaction scripts
-│   └── Deploy.s.sol        # Main deployment script
-├── test/                   # Test files
-├── lib/                    # Dependencies
-├── .env                    # Environment variables (git-ignored)
-└── foundry.toml           # Foundry configuration
+│   ├── core/              # Core protocol contracts
+│   └── ux/                # User experience enhancements
+├── script/                 # Deployment scripts
+├── test/                  # Comprehensive test suite
+├── docs/                  # Detailed documentation
+└── foundry.toml          # Foundry configuration
 ```
 
-### Development Workflow
+### Testing
 
-1. **Local Development**
-   ```shell
-   # Start a local Ethereum node
-   anvil
+The project includes an extensive test suite covering all functionality:
 
-   # In a new terminal, deploy to local network
-   forge script script/Deploy.s.sol:DeployScript --rpc-url http://localhost:8545 --private-key <PRIVATE_KEY> --broadcast
+```shell
+# Run all tests
+forge test
 
-   # Initialize the protocol with funding and sample data
-   forge script script/Setup.s.sol:SetupScript --rpc-url http://localhost:8545 --private-key <PRIVATE_KEY> --broadcast
-   ```
+# Run specific test file
+forge test --match-path test/Project.t.sol
 
-2. **Testing**
-   ```shell
-   # Run all tests
-   forge test
-   
-   # Run specific test file
-   forge test --match-path test/Project.t.sol
-   
-   # Run tests with verbosity
-   forge test -vvv
-   
-   # Run tests and show gas report
-   forge test --gas-report
-   ```
+# Run tests with gas reporting
+forge test --gas-report
 
-3. **Code Quality**
-   ```shell
-   # Format code
-   forge fmt
-   
-   # Check gas usage
-   forge snapshot
-   
-   # Run static analysis (if slither is installed)
-   slither .
-   ```
-
-4. **Contract Verification**
-   ```shell
-   # Verify on Etherscan (after deployment)
-   forge verify-contract <DEPLOYED_ADDRESS> src/Contract.sol:Contract --chain-id <CHAIN_ID> --api-key $ETHERSCAN_API_KEY
-   ```
+# Run tests with maximum verbosity
+forge test -vvvv
+```
 
 ### Deployment
 
-1. Set up your environment variables by creating a `.env` file:
+1. Configure environment:
 ```shell
-PRIVATE_KEY=your_private_key_here
+cp .env.example .env
+# Edit .env with your credentials
 ```
 
-2. Deploy the contracts:
+2. Deploy contracts:
 ```shell
-# For local deployment (Anvil)
-forge script script/Deploy.s.sol:DeployScript --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
+# Local deployment
+forge script script/DeployMVP.s.sol:DeployMVPScript --rpc-url http://localhost:8545 --broadcast
 
-# For testnet deployment (Sepolia)
-forge script script/Deploy.s.sol:DeployScript --rpc-url $SEPOLIA_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
-
-# For mainnet deployment
-forge script script/Deploy.s.sol:DeployScript --rpc-url $MAINNET_RPC_URL --private-key $PRIVATE_KEY --broadcast --verify
+# Testnet deployment
+forge script script/DeployMVP.s.sol:DeployMVPScript --rpc-url $SEPOLIA_RPC_URL --broadcast --verify
 ```
 
-The deployment script will:
-1. Deploy PlatformToken
-2. Deploy UserProfile
-3. Deploy Project (with UserProfile dependency)
-4. Deploy QuadraticFunding (with Project dependency)
+## Documentation
 
-3. Initialize the protocol:
-```shell
-# For local deployment (Anvil)
-forge script script/Setup.s.sol:SetupScript --rpc-url http://localhost:8545 --private-key $PRIVATE_KEY --broadcast
-```
+Comprehensive documentation is available in the `/docs` directory:
 
-The setup script will:
-1. Create a profile for the deployer
-2. Create an initial funding round with a 10 ETH matching pool
-3. Create a sample project with one milestone (1 ETH funding, 10 votes required)
-4. Verify the deployer as an eligible participant
-5. Make an initial contribution of 1 ETH to the sample project
+### Core Features
+- [Project Management](docs/Project-Tutorial.md)
+- [User Profiles](docs/UserProfile-Tutorial.md)
+- [Badge System](docs/Badge-Tutorial.md)
+- [Badge Marketplace](docs/BadgeMarketplace-Tutorial.md)
 
-After deployment and setup, save the deployed contract addresses for future reference. The setup script will output these addresses in the console.
+### Governance
+- [Main Governance](docs/Governance-Tutorial.md)
+- [Committee Governance](docs/CommitteeGovernance-Tutorial.md)
+- [Gasless Voting](docs/GaslessVoting-Tutorial.md)
+- [Proposal Templates](docs/ProposalTemplates-Tutorial.md)
 
-### Protocol Initialization
+### Financial Features
+- [Quadratic Funding](docs/QuadraticFunding-Tutorial.md)
+- [Liquidity Pool](docs/LiquidityPool-Tutorial.md)
+- [Liquidity Incentives](docs/LiquidityIncentives-Tutorial.md)
+- [Platform Token](docs/PlatformToken-Tutorial.md)
 
-After deployment, the protocol will be initialized with:
+### Project Management
+- [Project Categories](docs/ProjectCategories-Tutorial.md)
+- [Project Portfolio](docs/ProjectPortfolio-Tutorial.md)
+- [Project Templates](docs/ProjectTemplates-Tutorial.md)
+- [Team Management](docs/TeamManagement-Tutorial.md)
+- [Dispute Resolution](docs/DisputeResolution-Tutorial.md)
 
-- **User Profile**: A deployer profile with:
-  - Basic profile metadata
-  - Reputation Manager role
-  - Verifier role
-  - Recovery address set
-  - Initial reputation score of 100
-  - Verified status
-- **Funding Round**: Active round with:
-  - 10 ETH matching pool
-  - 14-day duration
-  - Min contribution: 0.01 ETH
-  - Max contribution: 10 ETH
-- **Sample Project**: Initial project with:
-  - Single milestone
-  - 1 ETH funding requirement
-  - 10 votes needed for completion
-- **Initial Funding**: 1 ETH contributed to the sample project
+### Security
+- [Security Controls Settings](docs/SecurityControls-Settings.md)
+- [Security Controls Tutorial](docs/SecurityControls-Tutorial.md)
 
-The deployer account will have full administrative capabilities:
-- Can manage user reputation scores
-- Can verify other user profiles
-- Can recover their profile if needed
-- Has elevated permissions for platform governance
+## Security Features
 
-### Common Tasks
-
-1. **Compile Contracts**
-   ```shell
-   forge build
-   ```
-
-2. **Clean Build Files**
-   ```shell
-   forge clean
-   ```
-
-3. **Update Dependencies**
-   ```shell
-   forge update
-   ```
-
-4. **Generate Gas Report**
-   ```shell
-   forge test --gas-report > gas-report.txt
-   ```
-
-### Best Practices
-
-1. Always run tests before deploying
-2. Keep your private keys and API keys secure
-3. Use the gas reporter to optimize expensive functions
-4. Verify contracts after deployment for transparency
-5. Document any deployed contract addresses
-6. Test on testnet before mainnet deployment
+- Multi-layered security controls
+- Rate limiting mechanisms
+- Time-locked operations
+- Emergency pause functionality
+- Multi-signature requirements
+- Comprehensive access controls
+- Automated security checks in CI/CD
 
 ## Contributing
 
-Contributions are welcome! Please read our contributing guidelines before submitting pull requests.
+1. Fork the repository
+2. Create your feature branch
+3. Run tests and ensure they pass
+4. Submit a pull request
 
 ## License
 
 This project is licensed under the MIT License.
-
-## TODO
-
-### UserProfile Contract
-- [x] Add access control to updateReputation function
-- [x] Implement rate limiting for profile updates
-- [x] Add profile verification system
-- [x] Create profile indexing for efficient querying
-- [x] Add profile metadata standards for better interoperability
-- [x] Implement profile recovery mechanism
-
-### LiquidityPool Contract
-- [x] Add slippage protection for swaps
-- [x] Implement emergency withdrawal mechanism
-- [x] Add events for pool state changes
-
-### Governance Contract
-- [x] Add proposal execution timelock
-- [x] Implement delegate voting
-- [x] Add proposal cancellation mechanism
-
-### Badge Contract
-- [x] Add badge metadata and URI standards
-- [x] Implement badge revoking mechanism
-- [x] Add badge progression system
-
-### QuadraticFunding Contract
-- [x] Add round cancellation mechanism
-- [x] Implement matching pool contribution mechanism
-- [x] Add contribution verification and validation
-- [x] Implement quadratic funding calculation formula
-- [x] Create round creation and configuration system
-- [x] Add participant eligibility verification
-- [x] Implement fund distribution mechanism
-- [x] Create reporting and analytics system

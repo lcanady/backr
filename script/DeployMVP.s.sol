@@ -73,24 +73,16 @@ contract DeployMVP is Script {
         // Setup rate limits for key operations
         bytes32 projectCreationOp = keccak256("PROJECT_CREATION");
         bytes32 qfContributionOp = keccak256("QF_CONTRIBUTION");
-        
-        securityControls.configureRateLimit(
-            projectCreationOp,
-            PROJECT_CREATION_LIMIT,
-            RATE_LIMIT_WINDOW
-        );
-        securityControls.configureRateLimit(
-            qfContributionOp,
-            QF_CONTRIBUTION_LIMIT,
-            RATE_LIMIT_WINDOW
-        );
+
+        securityControls.configureRateLimit(projectCreationOp, PROJECT_CREATION_LIMIT, RATE_LIMIT_WINDOW);
+        securityControls.configureRateLimit(qfContributionOp, QF_CONTRIBUTION_LIMIT, RATE_LIMIT_WINDOW);
 
         // Setup multi-sig configuration for emergency actions
         address[] memory emergencyApprovers = new address[](3);
         emergencyApprovers[0] = deployer;
         emergencyApprovers[1] = address(governance);
         emergencyApprovers[2] = address(project);
-        
+
         securityControls.configureMultiSig(
             keccak256("EMERGENCY_ACTION"),
             2, // Require 2 out of 3 approvals
@@ -101,7 +93,7 @@ contract DeployMVP is Script {
         securityControls.grantRole(securityControls.OPERATOR_ROLE(), address(project));
         securityControls.grantRole(securityControls.OPERATOR_ROLE(), address(qf));
         securityControls.grantRole(securityControls.EMERGENCY_ROLE(), address(governance));
-        
+
         console2.log("Setup security controls and permissions");
 
         // 5. Initial funding and setup
@@ -124,11 +116,11 @@ contract DeployMVP is Script {
         });
         qf.createRound{value: INITIAL_QF_POOL}(config);
         qf.verifyParticipant(deployer, true);
-        console2.log("Created initial funding round with", INITIAL_QF_POOL/1e18, "ETH");
+        console2.log("Created initial funding round with", INITIAL_QF_POOL / 1e18, "ETH");
 
         // 5.3 Fund governance treasury
         token.transfer(address(governance), INITIAL_GOVERNANCE_TOKENS);
-        console2.log("Funded governance treasury with", INITIAL_GOVERNANCE_TOKENS/1e18, "tokens");
+        console2.log("Funded governance treasury with", INITIAL_GOVERNANCE_TOKENS / 1e18, "tokens");
 
         // 5.4 Create sample project
         string[] memory descriptions = new string[](1);
@@ -139,11 +131,7 @@ contract DeployMVP is Script {
         votes[0] = 10;
 
         project.createProject(
-            "Sample Project",
-            "A demonstration project for the Backr protocol",
-            descriptions,
-            funding,
-            votes
+            "Sample Project", "A demonstration project for the Backr protocol", descriptions, funding, votes
         );
         console2.log("Created sample project");
 

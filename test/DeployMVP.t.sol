@@ -46,7 +46,9 @@ contract DeployMVPTest is Test {
         assertTrue(userProfile.hasProfile(DEPLOYER), "Deployer profile not created");
         UserProfile.Profile memory profile = userProfile.getProfile(DEPLOYER);
         assertTrue(profile.isVerified, "Deployer profile not verified");
-        assertTrue(userProfile.hasRole(userProfile.REPUTATION_MANAGER_ROLE(), DEPLOYER), "Missing reputation manager role");
+        assertTrue(
+            userProfile.hasRole(userProfile.REPUTATION_MANAGER_ROLE(), DEPLOYER), "Missing reputation manager role"
+        );
         assertTrue(userProfile.hasRole(userProfile.VERIFIER_ROLE(), DEPLOYER), "Missing verifier role");
         assertEq(profile.reputationScore, 100, "Incorrect reputation score");
 
@@ -54,10 +56,10 @@ contract DeployMVPTest is Test {
         // Check rate limits
         bytes32 projectCreationOp = keccak256("PROJECT_CREATION");
         bytes32 qfContributionOp = keccak256("QF_CONTRIBUTION");
-        
+
         (uint256 projectLimit, uint256 projectWindow,,) = securityControls.rateLimits(projectCreationOp);
         (uint256 qfLimit, uint256 qfWindow,,) = securityControls.rateLimits(qfContributionOp);
-        
+
         assertEq(projectLimit, deployer.PROJECT_CREATION_LIMIT(), "Incorrect project creation limit");
         assertEq(qfLimit, deployer.QF_CONTRIBUTION_LIMIT(), "Incorrect QF contribution limit");
         assertEq(projectWindow, deployer.RATE_LIMIT_WINDOW(), "Incorrect project window");
@@ -68,10 +70,7 @@ contract DeployMVPTest is Test {
             securityControls.hasRole(securityControls.OPERATOR_ROLE(), address(project)),
             "Project missing operator role"
         );
-        assertTrue(
-            securityControls.hasRole(securityControls.OPERATOR_ROLE(), address(qf)),
-            "QF missing operator role"
-        );
+        assertTrue(securityControls.hasRole(securityControls.OPERATOR_ROLE(), address(qf)), "QF missing operator role");
         assertTrue(
             securityControls.hasRole(securityControls.EMERGENCY_ROLE(), address(governance)),
             "Governance missing emergency role"
@@ -96,10 +95,12 @@ contract DeployMVPTest is Test {
             address creator,
             string memory title,
             string memory description,
-            ,,,  // Skip unused variables
+            ,
+            ,
+            , // Skip unused variables
             bool isActive,
         ) = project.projects(0);
-        
+
         assertTrue(isActive, "Sample project not active");
         assertEq(creator, DEPLOYER, "Incorrect project creator");
         assertEq(title, "Sample Project", "Incorrect project title");
@@ -116,13 +117,13 @@ contract DeployMVPTest is Test {
     function testEmergencyControls() public {
         vm.setEnv("PRIVATE_KEY", "1");
         deployer.run();
-        
+
         SecurityControls securityControls = deployer.securityControls();
-        
+
         // Get multi-sig config for emergency actions
         bytes32 emergencyAction = keccak256("EMERGENCY_ACTION");
         (uint256 requiredApprovals, address[] memory approvers) = securityControls.getMultiSigConfig(emergencyAction);
-        
+
         // Verify multi-sig configuration
         assertEq(requiredApprovals, 2, "Incorrect required approvals");
         assertEq(approvers.length, 3, "Incorrect number of approvers");

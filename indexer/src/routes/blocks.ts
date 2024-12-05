@@ -4,18 +4,6 @@ import { DatabaseAdapter } from '../db/adapter';
 export function createBlockRoutes(db: DatabaseAdapter) {
   const router = Router();
 
-  // Get block by number
-  router.get('/:number', async (req, res) => {
-    const blockNumber = parseInt(req.params.number);
-    const block = await db.getBlock(blockNumber);
-    
-    if (!block) {
-      return res.status(404).json({ error: 'Block not found' });
-    }
-    
-    res.json(block);
-  });
-
   // Get indexing status
   router.get('/status', async (req, res) => {
     const totalBlocks = await db.getTotalBlocks();
@@ -31,6 +19,18 @@ export function createBlockRoutes(db: DatabaseAdapter) {
         events: c.events?.filter(e => e.isActive).map(e => e.name)
       }))
     });
+  });
+
+  // Get block by number
+  router.get('/:number', async (req, res) => {
+    const blockNumber = parseInt(req.params.number);
+    const block = await db.getBlock(blockNumber);
+    
+    if (!block) {
+      return res.status(404).json({ error: 'Block not found' });
+    }
+    
+    res.json(block);
   });
 
   return router;

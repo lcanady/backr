@@ -1,119 +1,153 @@
-# UserProfile Contract Tutorial
+# User Profile Tutorial
 
-This tutorial explains how to interact with the UserProfile contract, which manages user profiles, reputation, social connections, and endorsements on the Backr platform.
+The UserProfile contract manages user profiles and reputation in the Backr ecosystem. This tutorial covers how to interact with the contract's various features.
 
-## Core Features
+## Table of Contents
+1. [Basic Profile Management](#basic-profile-management)
+2. [Profile Verification](#profile-verification)
+3. [Reputation System](#reputation-system)
+4. [Profile Recovery](#profile-recovery)
+5. [Social Graph Features](#social-graph-features)
+6. [Endorsement System](#endorsement-system)
+7. [Administrative Functions](#administrative-functions)
+8. [Profile Metadata Standards](#profile-metadata-standards)
 
-1. Profile Management
-2. Verification System
-3. Social Graph (Following/Followers)
-4. Endorsement System
-5. Profile Recovery
-
-## Profile Management
+## Basic Profile Management
 
 ### Creating a Profile
 
-To participate in the Backr platform, users must first create a profile:
+To create a new profile:
 
 ```solidity
 userProfile.createProfile(
-    "alice_dev",           // username
-    "Blockchain Developer", // bio
-    "ipfs://Qm..."         // metadata IPFS hash
+    "alice",              // username
+    "Web3 developer",     // bio
+    "ipfs://metadata1"    // metadata (IPFS hash)
 );
 ```
 
-**Important Notes**:
+Requirements:
+- You cannot create multiple profiles for the same address
 - Usernames must be unique
-- Profiles cannot be created while the contract is paused
-- Each address can only have one profile
+- Username cannot be empty
 
 ### Updating a Profile
 
-Profiles can be updated with a 24-hour cooldown period:
+To update an existing profile:
 
 ```solidity
 userProfile.updateProfile(
-    "alice_web3",          // new username
-    "Senior Web3 Dev",     // new bio
-    "ipfs://Qm..."         // new metadata IPFS hash
+    "alice_updated",           // new username
+    "Senior Web3 developer",   // new bio
+    "ipfs://metadata2"        // new metadata
 );
 ```
 
-**Restrictions**:
-- Must wait 24 hours between updates
+Requirements:
+- Must wait 1 day between updates (PROFILE_UPDATE_COOLDOWN)
 - New username must be unique
-- Cannot update while contract is paused
+- Username cannot be empty
 
-### Checking Profile Status
+## Profile Verification
 
-```solidity
-// Check if an address has a profile
-bool hasProfile = userProfile.hasProfile(address);
-
-// Get profile details
-Profile memory profile = userProfile.getProfile(address);
-
-// Look up profile by username
-Profile memory profile = userProfile.getProfileByUsername("alice_dev");
-```
-
-## Verification System
-
-The platform supports multiple types of verification:
+The contract supports two types of verification:
 
 ### Basic Verification
-Only accessible by addresses with VERIFIER_ROLE:
+
+Can only be performed by addresses with the VERIFIER_ROLE:
 
 ```solidity
 userProfile.verifyProfile(userAddress);
 ```
 
 ### Enhanced Verification
-Supports different verification types with proof:
+
+Supports different types of verification with additional metadata:
 
 ```solidity
 userProfile.verifyProfileEnhanced(
     userAddress,
-    "KYC",                // verification type
-    "ipfs://Qm..."        // verification proof
+    "KYC",                    // verification type
+    "ipfs://verification123"  // verification proof
 );
 ```
 
-### Checking Verification Status
+Verification can also be revoked:
 
 ```solidity
-VerificationData memory data = userProfile.getVerificationDetails(userAddress);
+userProfile.revokeVerification(userAddress, "KYC");
 ```
+
+## Reputation System
+
+### Updating Reputation
+
+Can only be performed by addresses with the REPUTATION_MANAGER_ROLE:
+
+```solidity
+userProfile.updateReputation(userAddress, 100);
+```
+
+Requirements:
+- Score must be between 0 and 1000 (MAX_REPUTATION)
+- User must have a registered profile
+
+## Profile Recovery
+
+The recovery system allows users to recover access to their profile if they lose access to their original address.
+
+### Setting Recovery Address
+
+```solidity
+userProfile.setRecoveryAddress(recoveryAddress);
+```
+
+### Recovery Process
+
+1. Initiate recovery (must be called by recovery address):
+```solidity
+userProfile.initiateRecovery(oldAddress);
+```
+
+2. Execute recovery after delay (must be called by recovery address):
+```solidity
+userProfile.executeRecovery(oldAddress);
+```
+
+Requirements:
+- Must wait 3 days (RECOVERY_DELAY) between initiation and execution
+- Only the designated recovery address can perform these actions
 
 ## Social Graph Features
 
 ### Following Users
 
 ```solidity
-// Follow a user
 userProfile.followUser(addressToFollow);
+```
 
-// Unfollow a user
+Requirements:
+- Cannot follow yourself
+- Cannot follow the same user twice
+- User must have a registered profile
+
+### Unfollowing Users
+
+```solidity
 userProfile.unfollowUser(addressToUnfollow);
 ```
 
 ### Viewing Social Connections
 
 ```solidity
-// Get following list
-address[] memory following = userProfile.getFollowing(userAddress);
+// Get list of addresses user is following
+address[] following = userProfile.getFollowing(userAddress);
 
-// Get followers list
-address[] memory followers = userProfile.getFollowers(userAddress);
+// Get list of followers
+address[] followers = userProfile.getFollowers(userAddress);
 
-// Check if following
+// Check if one user follows another
 bool isFollowing = userProfile.checkFollowing(follower, followed);
-
-// Get counts
-uint256 followersCount = userProfile.followersCount(userAddress);
-uint256 followingCount = userProfile.followingCount(userAddress);
 ```
 
 ## Endorsement System
@@ -123,156 +157,169 @@ uint256 followingCount = userProfile.followingCount(userAddress);
 ```solidity
 userProfile.addEndorsement(
     userAddress,
-    "Solidity",           // skill
-    "Excellent developer" // description
+    "Solidity",              // skill
+    "Excellent developer"    // description
 );
 ```
 
-**Rules**:
+Requirements:
 - Cannot endorse yourself
 - Cannot endorse the same skill twice
-- User must have a profile
+- User must have a registered profile
 
-### Managing Endorsements
+### Removing Endorsements
 
 ```solidity
-// Remove an endorsement
 userProfile.removeEndorsement(userAddress, "Solidity");
+```
 
-// View endorsements
-Endorsement[] memory endorsements = userProfile.getEndorsements(userAddress);
+### Viewing Endorsements
 
-// Get skill endorsement count
+```solidity
+// Get all endorsements
+Endorsement[] endorsements = userProfile.getEndorsements(userAddress);
+
+// Get count for specific skill
 uint256 count = userProfile.getSkillEndorsementCount(userAddress, "Solidity");
 
-// Check if endorsed
+// Check if user has endorsed a skill
 bool hasEndorsed = userProfile.hasEndorsedSkill(endorser, endorsed, "Solidity");
 ```
 
-## Profile Recovery
+## Administrative Functions
 
-The platform includes a secure recovery system for lost access:
+### Role Management
 
-### Setting Up Recovery
+The contract uses OpenZeppelin's AccessControl with the following roles:
+- DEFAULT_ADMIN_ROLE: Can grant/revoke other roles
+- REPUTATION_MANAGER_ROLE: Can update user reputation
+- VERIFIER_ROLE: Can verify profiles
+
+### Pausing
+
+The contract can be paused by the admin to stop all operations:
 
 ```solidity
-// Set recovery address
-userProfile.setRecoveryAddress(recoveryAddress);
+// Pause
+userProfile.pause();
+
+// Unpause
+userProfile.unpause();
 ```
 
-### Recovery Process
+### Verification Types
 
-1. Initiate Recovery:
+Admins can manage supported verification types:
+
 ```solidity
-userProfile.initiateRecovery(oldAddress);
+// Add verification type
+userProfile.addVerificationType("KYC");
+
+// Remove verification type
+userProfile.removeVerificationType("KYC");
 ```
 
-2. Execute Recovery (after 3-day delay):
-```solidity
-userProfile.executeRecovery(oldAddress);
+## Profile Metadata Standards
+
+The UserProfile contract uses IPFS for storing extended profile metadata. The metadata field in the Profile struct expects an IPFS URI that points to a JSON file containing additional profile information.
+
+### Metadata Format
+
+The metadata JSON should follow this structure:
+
+```json
+{
+  "version": "1.0",
+  "name": "Display Name",
+  "avatar": "ipfs://...",  // IPFS hash of profile image
+  "banner": "ipfs://...",  // IPFS hash of profile banner image
+  "description": "Extended bio/description",
+  "links": {
+    "website": "https://...",
+    "twitter": "https://twitter.com/...",
+    "github": "https://github.com/...",
+    "linkedin": "https://linkedin.com/in/..."
+  },
+  "skills": [
+    {
+      "name": "Solidity",
+      "level": "Expert",
+      "years": 3
+    },
+    {
+      "name": "Web3",
+      "level": "Intermediate", 
+      "years": 2
+    }
+  ],
+  "achievements": [
+    {
+      "title": "Hackathon Winner",
+      "date": "2023-01-01",
+      "description": "First place in ETHGlobal hackathon",
+      "proof": "ipfs://..." // Optional proof/certificate
+    }
+  ],
+  "preferences": {
+    "displayEmail": false,
+    "availableForWork": true,
+    "timezone": "UTC-5",
+    "languages": ["en", "es"]
+  }
+}
 ```
 
-**Important Notes**:
-- Must wait 3 days between initiation and execution
-- Only the recovery address can initiate and execute
-- All profile data is transferred to the new address
+### Metadata Events
 
-## Events to Monitor
-
-The contract emits various events for tracking changes:
-
-1. Profile Management:
-   - `ProfileCreated(address user, string username)`
-   - `ProfileUpdated(address user)`
-   - `MetadataUpdated(address user, string metadata)`
-
-2. Verification:
-   - `ProfileVerified(address user)`
-   - `ProfileVerificationUpdated(address user, string verificationType, bool verified)`
-
-3. Social:
-   - `FollowUser(address follower, address followed)`
-   - `UnfollowUser(address follower, address unfollowed)`
-
-4. Endorsements:
-   - `EndorsementAdded(address endorser, address endorsed, string skill)`
-   - `EndorsementRemoved(address endorser, address endorsed, string skill)`
-
-5. Recovery:
-   - `RecoveryAddressSet(address user, address recoveryAddress)`
-   - `RecoveryRequested(address user, uint256 requestTime)`
-   - `RecoveryExecuted(address oldAddress, address newAddress)`
-
-## Error Handling
-
-Common errors you might encounter:
+The contract emits a `MetadataUpdated` event whenever profile metadata changes:
 
 ```solidity
-ProfileAlreadyExists()    // Address already has a profile
-ProfileDoesNotExist()     // Profile not found
-InvalidUsername()         // Empty username
-UsernameTaken()          // Username already in use
-UpdateTooSoon()          // Cooldown period not met
-NotVerified()            // Profile not verified
-InvalidRecoveryAddress() // Invalid recovery address
-RecoveryDelayNotMet()    // 3-day delay not met
-NoRecoveryRequested()    // Recovery not initiated
-Unauthorized()           // Not authorized for action
-InvalidReputationScore() // Score exceeds maximum
+event MetadataUpdated(address indexed user, string metadata);
 ```
 
-## Best Practices
+This event can be monitored to track profile updates and keep any external systems in sync.
 
-1. **Profile Creation**
-   - Choose a unique, meaningful username
-   - Provide comprehensive bio information
-   - Store detailed metadata in IPFS
+### Best Practices
 
-2. **Profile Updates**
-   - Plan updates around cooldown period
-   - Maintain consistent username scheme
-   - Keep metadata current
+1. Always validate metadata JSON schema before uploading to IPFS
+2. Use permanent IPFS pins for metadata storage
+3. Keep metadata size reasonable (recommended < 100KB)
+4. Update metadata atomically with profile changes
+5. Include version field for future compatibility
 
-3. **Social Interactions**
-   - Verify profiles before following
-   - Build meaningful connections
-   - Regularly update social graph
+## Query Functions
 
-4. **Endorsements**
-   - Provide detailed endorsement descriptions
-   - Endorse specific, verifiable skills
-   - Maintain professional endorsement practices
-
-5. **Security**
-   - Set up recovery address immediately
-   - Store recovery information securely
-   - Regularly verify profile settings
-
-## Testing Example
-
-Here's a complete example of setting up and using a profile:
+### Profile Information
 
 ```solidity
-// 1. Create profile
-userProfile.createProfile(
-    "dev_alice",
-    "Blockchain Developer specializing in DeFi",
-    "ipfs://Qm..."
-);
+// Check if address has profile
+bool exists = userProfile.hasProfile(address);
 
-// 2. Set recovery address
-userProfile.setRecoveryAddress(recoveryWallet);
+// Get profile by address
+Profile profile = userProfile.getProfile(address);
 
-// 3. Follow other users
-userProfile.followUser(otherDev);
+// Get profile by username
+Profile profile = userProfile.getProfileByUsername("alice");
 
-// 4. Add endorsements
-userProfile.addEndorsement(
-    otherDev,
-    "Smart Contracts",
-    "Excellent Solidity developer, worked together on DeFi project"
-);
+// Get verification details
+VerificationData data = userProfile.getVerificationDetails(address);
+```
 
-// 5. Check profile status
-Profile memory myProfile = userProfile.getProfile(address(this));
-VerificationData memory verificationStatus = userProfile.getVerificationDetails(address(this));
+## Events
+
+The contract emits various events that can be monitored:
+- ProfileCreated(address indexed user, string username)
+- ProfileUpdated(address indexed user)
+- ReputationUpdated(address indexed user, uint256 newScore)
+- ProfileVerified(address indexed user)
+- RecoveryAddressSet(address indexed user, address indexed recoveryAddress)
+- RecoveryRequested(address indexed user, uint256 requestTime)
+- RecoveryExecuted(address indexed oldAddress, address indexed newAddress)
+- MetadataUpdated(address indexed user, string metadata)
+- FollowUser(address indexed follower, address indexed followed)
+- UnfollowUser(address indexed follower, address indexed unfollowed)
+- EndorsementAdded(address indexed endorser, address indexed endorsed, string skill)
+- EndorsementRemoved(address indexed endorser, address indexed endorsed, string skill)
+- VerificationTypeAdded(string verificationType)
+- VerificationTypeRemoved(string verificationType)
+- ProfileVerificationUpdated(address indexed user, string verificationType, bool verified)
